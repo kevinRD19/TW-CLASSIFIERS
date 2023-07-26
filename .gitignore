@@ -3,6 +3,6 @@
 data/
 images/
 images/*.pdf
-src/tree/graph_statics.py
-src/classifiers/topic_classifier.py
-src/classifiers/topic_classifier.ipynb
+tree/graph_statics.py
+classifiers/topic_classifier.py
+classifiers/topic_classifier.ipynb

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 
 dirs = ['data/tree', 'data/tree2', 'data/tree3', 'data/tree4', 'data/tree5']
-CONFIG = json.load(open('src/config.json', 'r'))
+CONFIG = json.load(open('config.json', 'r'))
 
 
 class Radar(object):
