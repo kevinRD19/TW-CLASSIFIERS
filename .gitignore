@@ -1,0 +1,8 @@
+.vscode
+.venv
+data/
+images/
+images/*.pdf
+src/tree/graph_statics.py
+src/classifiers/topic_classifier.py
+src/classifiers/topic_classifier.ipynb

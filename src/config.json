@@ -1,0 +1,37 @@
+{
+    "uri": "",
+    "protest_types": {
+        "POLITICA": [
+            "Verdadera Democracia", "Corrupción", "Justicia",
+            "Soberania y Cuestiones patrióticas",
+            "Transparencia y Rendición de Cuentas", "Oligarquía",
+            "Anti Guerra/Militarismo y fuerzas de seguridad",
+            "Vigilancia Ciudadana", "Anti-Socialismo/Comunismo"
+        ],
+        "ECONÓMICA": [
+            "Trabajo/Salarios/Condiciones Laborales",
+            "Reforma de los Servicios Públicos",
+            "Influencia Corporativa/Desregulación/Privatización", "Desigualdad",
+            "Impuestos/Jusiticia Fiscal", "Bajo Nivel de Vida", "Reforma Agraria",
+            "Combustible/Precios Energéticos", "Reforma Pensiones", "Vivienda",
+            "Precio Alimentos"
+        ],
+        "SOCIAL": [
+            "Etnias/Indígenas/Justicia Racial", "Derechos Bienes Comunes",
+            "Libertad de Reunión/Expresión/Prensa",
+            "Denegación de Derechos/Rechazo Igualdad de Derechos para un Grupo",
+            "Derechos de la Mujer", "Derechos de los Trabajadores",
+            "Derechos LGBT", "Derechos de los Inmigrantes",
+            "Libertades Personales", "Derechos de los Presos",
+            "Derechos Religiosos"
+        ],
+        "JUSTICIA INTERNACIONAL": [
+            "Justica Medioambiental/Clímatica",
+            "Anti Instituiones Financieras Internacionales",
+            "Anti Imperialismo", "Anti Libre de Comercio", "Patrimonio Mundial",
+            "Anti G20"
+        ],
+        "NO PROTESTA": ["Spam", "No protesta"]
+    }
+
+}
