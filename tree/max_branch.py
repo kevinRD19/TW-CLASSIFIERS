@@ -45,12 +45,17 @@ if __name__ == '__main__':
                                      'campañas según el número de usos')
     parser.add_argument('-i', '--ignore', action='store_true', default=False,
                         help='Flag to ignore the data in the data folder' +
-                        ' and generate a new one from the database')
+                        ' and generate it from the database')
     parser.add_argument('-c', '--conversation', type=int,
                         help='Conversation id to generate the maximum ' +
                         'length branch conversation tree')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        help='Indicates if the program should show the ' +
+                        'information in the nodes of the graph (id, text, ' +
+                        'author)')
     args = parser.parse_args()
 
+    # Gets all independent root tweets
     db = DB(db_uri)
     df_root_tweets, df_tweets = get_useful_roots(db, args.ignore)
 
@@ -68,11 +73,13 @@ if __name__ == '__main__':
     tree, df_tweets = load_tree(db, tweet, df_tweets)
 
     graph = TweetGrah(tree, rt=False, like=False)
+
+    # Obtains the maximum length branch
     path = graph.get_max_branch_nodes()
     subgraph = nx.induced_subgraph(graph, path)
-    subgraph.show()
-    # print(f'Start: {graph.root.created_at}')
-    # print(f'End: {max(graph.get_sheed_nodes())}')
-    # print(f'Max_depht: {len(graph.get_max_branch_nodes())}')
+    subgraph.show(args.verbose)
+
+    # Shows some statistics of the deepest branch
+    df_statics = graph.get_statics()
 
     db.close_connection()

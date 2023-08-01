@@ -26,14 +26,8 @@ class DB:
         self.db_engine = create_engine(db_uri)
         self.db_metadata = MetaData()
         self.db_conn = self.db_engine.connect()
-        # self.db_is_connected = False
+
         self.tweets = None
-        self.tw = Table('tweet', self.db_metadata, autoload_replace=True,
-                        autoload_with=self.db_engine)
-        self.rp = Table('reply', self.db_metadata, autoload_replace=True,
-                        autoload_with=self.db_engine)
-        self.rt = Table('retweet', self.db_metadata, autoload_replace=True,
-                        autoload_with=self.db_engine)
 
     def close_connection(self):
         """
@@ -44,7 +38,7 @@ class DB:
 
     def get_tweets(self, limit: int = None) -> DataFrame:
         """
-        Get the tweets from the database limited by the limit parameter
+        Gets the tweets from the database limited by the limit parameter
 
         Arguments
         ----------
@@ -53,10 +47,8 @@ class DB:
 
         Returns
         -------
-            - `DataFrame`: Contains the tweets from the database
+            - `DataFrame`: tweets from the database
         """
-        if self.tweets:
-            return self.tweets
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
         try:
@@ -64,31 +56,24 @@ class DB:
             mentions = list(filter(lambda t: men_patt.match(t),
                             tweet.columns.keys()))
             cols = [col for col in tweet.c if col.name not in mentions]
-            if limit:
-                # query = select(*cols).where((tweet.c.lang == 'es')
-                #                             | (tweet.c.lang == 'und'))\
-                #         .limit(limit)
-                query = select(*cols).where(tweet.c.lang == 'es')\
-                        .limit(limit)
-            else:
-                # query = tweet.select(cols).where((tweet.c.lang == 'es')
-                #                                  | (tweet.c.lang == 'und'))
-                query = select(*cols).where(tweet.c.lang == 'es')
+            query = select(*cols).where(tweet.c.lang == 'es')\
+                .limit(limit) if limit \
+                else select(*cols).where(tweet.c.lang == 'es')
             tweets = self.db_conn.execute(query).fetchall()
+
+            return pd.DataFrame(tweets)
 
         except SQLAlchemyError as err:
             print(err)
             return None
-        self.tweets = pd.DataFrame(tweets)
-        return self.tweets
 
     def get_tweets_metrics(self) -> DataFrame:
         """
-        Get the tweet metrics from the database
+        Gets the tweet metrics from the database
 
         Returns
         -------
-            - `Dataframe`: dataframe with the tweet metrics (retweets, replies,
+            - `Dataframe`: tweet metrics (retweets, replies,
             quotes and likes)
         """
 
@@ -98,19 +83,20 @@ class DB:
         query_ = select(tw_metrics)
         metrics = self.db_conn.execute(query_).fetchall()
 
-        self.metrics = pd.DataFrame(metrics)
-        self.metrics['interaction_count'] = self.metrics['retweet_count'] + \
-            self.metrics['reply_count'] + self.metrics['quote_count'] + \
-            self.metrics['like_count']
-        return self.metrics
+        df_metrics = pd.DataFrame(metrics)
+        df_metrics['interaction_count'] = df_metrics['retweet_count'] + \
+            df_metrics['reply_count'] + df_metrics['quote_count'] + \
+            df_metrics['like_count']
+
+        return df_metrics
 
     def get_count_tweets(self) -> DataFrame:
         """
-        Get the count of tweets per author, sorted by the count
+        Gets the count of tweets per author, sorted by tweet count
 
         Returns
         -------
-            - `Dataframe`: dataframe with the count of tweets per author
+            - `Dataframe`: count of tweets per author
         """
         if self.tweets is None:
             self.get_tweets()
@@ -125,31 +111,19 @@ class DB:
             self.df_count_tw.reset_index(inplace=True, drop=True)
         return self.df_count_tw
 
-    def get_most_hashtags(self, limit: int = 10) -> DataFrame:
+    def get_most_hashtags(self) -> DataFrame:
         """
-        Get the most used hashtags sorted by the count of uses
-
-        Arguments
-        ----------
-            - limit (`int`, `optional`): maximum number of hastags to get.
-            Defaults to 10.
+        Gets the most used hashtags sorted by the count of uses
 
         Returns
         -------
-            - `DataFrame`: dataframe with the most used hashtags
+            - `DataFrame`: most used hashtags
         """
-        # tweet = Table('tweet', self.db_metadata, autoload_replace=True,
-        #               autoload_with=self.db_engine)
         hashtag = Table('hashtag', self.db_metadata, autoload_replace=True,
                         autoload_with=self.db_engine)
         hashtagt_tw = Table('hashtagt_tweet', self.db_metadata,
                             autoload_replace=True,
                             autoload_with=self.db_engine)
-        # join_ = hashtag.join(hashtagt_tw)\
-        #     .join(tweet, tweet.c.id == hashtagt_tw.c.tweet_id)
-        # query_ = select(hashtag.c.hashtag, func.count().label('num_uses'))\
-        #     .select_from(join_).group_by(hashtag.c.hashtag)\
-        #     .order_by(text('num_uses DESC'))
         join_ = hashtag.join(hashtagt_tw)
         query_ = select(hashtag.c.hashtag, func.count().label('num_uses'))\
             .select_from(join_).group_by(hashtag.c.hashtag)\
@@ -157,71 +131,58 @@ class DB:
 
         count_hasht = self.db_conn.execute(query_).fetchall()
         self.df_count_hasht = pd.DataFrame(count_hasht).reset_index(drop=True)
+
         return self.df_count_hasht
 
-    def get_most_campaign(self, limit: int = 10) -> DataFrame:
+    def get_most_campaign(self) -> DataFrame:
         """
-        Get the campaigns with the most tweets sorted by the count of tweets
+        Gets the campaigns with the most tweets sorted by tweet count
 
-        Arguments
-        ----------
-            - limit (`int`, `optional`): maximum number of campaigns to get.
-            Defaults to 10.
-
-        Returns:
-            - `DataFrame`: dataframe with the most used campaigns
+        Returns
+        -------
+            - `DataFrame`: most used campaigns
         """
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
         query = select(tweet.c.campaign, func.count().label('num_uses'))\
             .group_by(tweet.c.campaign).order_by(text('num_uses DESC'))
-        count_campaign = self.db_conn.execute(query).fetchall()
 
+        count_campaign = self.db_conn.execute(query).fetchall()
         self.df_count_cmp = pd.DataFrame(count_campaign).reset_index(drop=True)
+
         return self.df_count_cmp
 
     def get_most_categories(self) -> DataFrame:
         """
-        Get the most used categories sorted by the count of uses
+        Gets the most used categories sorted by the use count
 
         Returns
         -------
-            - `Dataframe`: dataframe with the most used categories
+            - `Dataframe`: most used categories
         """
-        # tweet = Table('tweet', self.db_metadata, autoload_replace=True,
-        #               autoload_with=self.db_engine)
         ann_tw = Table('annotation_tweet', self.db_metadata,
                        autoload_replace=True, autoload_with=self.db_engine)
         domain = Table('domain', self.db_metadata,
                        autoload_replace=True, autoload_with=self.db_engine)
-        # join_ = tweet.join(ann_tw).join(domain)
-        # query_ = select(domain.c.category, func.count().label('num_uses'))\
-        #     .select_from(join_).group_by(domain.c.category)\
-        #     .order_by(text('num_uses DESC'))
         join_ = ann_tw.join(domain)
         query_ = select(domain.c.category, func.count().label('num_uses'))\
             .select_from(join_).group_by(domain.c.category)\
             .order_by(text('num_uses DESC'))
-        count_category = self.db_conn.execute(query_).fetchall()
 
+        count_category = self.db_conn.execute(query_).fetchall()
         self.df_count_cat = pd.DataFrame(count_category).reset_index(drop=True)
+
         return self.df_count_cat
 
-    def get_most_person(self, limit: int = 10) -> DataFrame:
+    def get_most_person(self) -> DataFrame:
         """
-        Get the different persons mentioned in the tweets and the number of
-        times they are mentioned sorted by the number of mentions.
-
-        Arguments:
-        ----------
-            - limit (`int`, `optional`): maximum number of persons to get.
+        Gets the different persons mentioned in the tweets and the number of
+        times they are mentioned, sorted by the number of mentions.
 
         Returns
         -------
-            - `DataFrame`: dataframe with the most mentioned persons
+            - `DataFrame`: most mentioned persons
         """
-        # tweet = Table('tweet', self.db_metadata, autoload_replace=True,
-        #               autoload_with=self.db_engine)
         ann_tw = Table('annotation_tweet', self.db_metadata,
                        autoload_replace=True, autoload_with=self.db_engine)
         domain = Table('domain', self.db_metadata,
@@ -233,16 +194,17 @@ class DB:
 
         count_name = self.db_conn.execute(query_).fetchall()
         self.df_count_person = pd.DataFrame(count_name).reset_index(drop=True)
+
         return self.df_count_person
 
     def get_top_users(self) -> DataFrame:
         """
-        Get the authors (id and username) with its respective number of posts
+        Gets the authors (id and username) with its respective number of posts
         (tweets, retweets, replies, quotes) ordered by the number of posts.
 
         Returns
         -------
-            - `DataFrame`: dataframe with the top active users
+            - `DataFrame`: top of the active users
         """
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
@@ -257,10 +219,12 @@ class DB:
             .order_by(text('num_posts DESC'))
         num_posts = self.db_conn.execute(query_).fetchall()
         self.df_num_posts = pd.DataFrame(num_posts).reset_index(drop=True)
+
         return self.df_num_posts
 
     def get_tweet_by_user(self, user_id: int | List) -> DataFrame:
-        """_summary_
+        """
+        Gets the tweets of the given user(s).
 
         Arguments:
         ----------
@@ -269,36 +233,50 @@ class DB:
 
         Returns:
         --------
-            - `DataFrame`: _description_
+            - `DataFrame`: tweets of the given users
         """
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
         if isinstance(user_id, int):
             user_id = [user_id]
+
         query = select(tweet.c.author_id, tweet.c.created_at)\
             .where(tweet.c.author_id.in_(user_id))
-
         tweets = self.db_conn.execute(query).fetchall()
+
         return pd.DataFrame(tweets).reset_index(drop=True)
 
     def get_tweets_by_ids(self, tweet_id: int | List, columns: List = []) -> \
             DataFrame:
+        """
+        Gets the tweet information of the given tweet(s).
+
+        Arguments:
+        ----------
+            - tweet_id (`int` | `List`): id or list of ids of the tweets to
+            get the information from.
+
+        Returns:
+        --------
+            - `DataFrame`: tweets information that match the given ids
+        """
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
+
         if isinstance(tweet_id, int):
             tweet_id = [tweet_id]
         columns = set(columns) & set(tweet.columns.keys()) \
             if columns else tweet.columns.keys()
         columns = [col for col in tweet.c if col.name in columns]
-        query = select(*columns).where(tweet.c.id.in_(tweet_id))
 
+        query = select(*columns).where(tweet.c.id.in_(tweet_id))
         tweets = self.db_conn.execute(query).fetchall()
+
         return pd.DataFrame(tweets).reset_index(drop=True)
 
     def get_tweets_by_hashtag(self, hashtag: str | List) -> DataFrame:
         """
-        Returns the date of creation of the tweets that contain the given
-        hashtags.
+        Gets the tweets that contain the given hashtag(s).
 
         Arguments:
         ----------
@@ -307,7 +285,7 @@ class DB:
 
         Returns:
         --------
-            - `DataFrame`: _description_
+            - `DataFrame`: tweets that contain at least one of the given
         """
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
@@ -317,6 +295,7 @@ class DB:
         hs = Table('hashtag', self.db_metadata,
                    autoload_replace=True,
                    autoload_with=self.db_engine)
+
         if isinstance(hashtag, str):
             hashtag = [hashtag]
         join_ = hs_tw.join(hs).join(tweet, tweet.c.id == hs_tw.c.tweet_id)
@@ -328,6 +307,16 @@ class DB:
 
     def get_tweets_by_mention(self, names: str | List) -> DataFrame:
         """
+        Gets the tweets that mention the given name(s).
+
+        Arguments:
+        ----------
+            - names (`str` | `List`): name(s) that must be mentioned in the
+            tweets.
+
+        Returns:
+        --------
+            - DataFrame: tweets that mention at least one of the given names.
         """
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
@@ -349,7 +338,11 @@ class DB:
 
     def get_users(self) -> DataFrame:
         """
-        Get the users from the database
+        Gets all user id from the database.
+
+        Returns:
+        -------
+            - `DataFrame`: dataframe with the user id.
         """
         user = Table('user', self.db_metadata, autoload_replace=True,
                      autoload_with=self.db_engine)
@@ -360,7 +353,11 @@ class DB:
 
     def get_retweets(self) -> DataFrame:
         """
-        Get the retweets from the database
+        Gets the retweets from the database
+
+        Returns:
+        --------
+            - `DataFrame`: retweets information
         """
         rt = Table('retweet', self.db_metadata, autoload_replace=True,
                    autoload_with=self.db_engine)
@@ -370,7 +367,11 @@ class DB:
 
     def get_replies(self) -> DataFrame:
         """
-        Get the replies from the database
+        Gets the replies from the database
+
+        Returns:
+        --------
+            - `DataFrame`: replies information
         """
         reply = Table('reply', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
@@ -380,7 +381,11 @@ class DB:
 
     def get_quotes(self) -> DataFrame:
         """
-        Get the quotes from the database
+        Gets the quotes from the database
+
+        Returns:
+        --------
+            - `DataFrame`: quotes information
         """
         quoted = Table('quoted', self.db_metadata, autoload_replace=True,
                        autoload_with=self.db_engine)
@@ -390,8 +395,8 @@ class DB:
 
     def get_posts_by_type(self, user_id: int | List) -> DataFrame:
         """
-        Get the number of tweets, retweets, replies and quotes of the given
-        users.
+        Gets the number of tweets, retweets, replies and quotes done by
+        the given users.
 
         Arguments:
         ----------
@@ -437,7 +442,7 @@ class DB:
 
     def get_interactions_list(self, ids: int | List) -> DataFrame:
         """
-        Get the list of interactions of the given tweet(s).
+        Gets the list of interactions of the given tweet(s).
 
         Arguments
         ----------
@@ -446,7 +451,7 @@ class DB:
 
         Returns
         -------
-            - DataFrame: dataframe with the information of the interactions
+            - DataFrame: information of the interactions of the given tweets
         """
         rt = self._get_retweet_dates_post(ids)
         rp = self._get_reply_dates_post(ids)
@@ -456,14 +461,15 @@ class DB:
 
     def _get_retweet_dates_post(self, ids: int | List) -> DataFrame:
         """
-        Get the dates of the retweets of the given tweet(s).
+        Gets the dates of the retweets of the given tweet(s).
 
         Arguments
         ----------
-            - id (`int` | `List`): #TODO
+            - id (`int` | `List`): id of the tweet(s) to get the
+            retweet dates.
 
         Returns:
-            - `DataFrame`: dataframe with the information of the retweets
+            - `DataFrame`: retweet dates of the given tweets.
         """
         if isinstance(ids, int):
             ids = [ids]
@@ -483,16 +489,15 @@ class DB:
 
     def _get_reply_dates_post(self, ids: int | List) -> DataFrame:
         """
-        Get the dates of the retweets of the given tweet(s).
+        Gets the dates of the replies of the given tweet(s).
 
         Arguments
         ----------
-            id (`int` | `List`): id or list of ids of the tweets to get the
-            replies date from.
+            - id (`int` | `List`): id of the tweet(s) to get the reply dates.
 
         Returns
         -------
-            `DataFrame`: dataframe with the information of the replies
+            - `DataFrame`: reply dates of the given tweets.
         """
         if isinstance(ids, int):
             ids = [ids]
@@ -509,38 +514,13 @@ class DB:
 
         return pd.DataFrame(tweets).reset_index(drop=True)
 
-    def get_top_influencers(self) -> DataFrame:
-        """
-        Get the authors (id and username) with its respective number of posts
-        (tweets, retweets, replies, quotes) ordered by the number of posts.
-
-        Returns
-        -------
-            - `DataFrame`: dataframe with the top influencers
-        """
-        tweet = Table('tweet', self.db_metadata, autoload_replace=True,
-                      autoload_with=self.db_engine)
-        user = Table('user', self.db_metadata, autoload_replace=True,
-                     autoload_with=self.db_engine)
-        posts_count = select(tweet.c.author_id.label('user_id'),
-                             func.count().label('num_posts'))\
-            .group_by(tweet.c.author_id).alias('posts_count')
-        join_ = user.join(posts_count)
-        query = select(text('posts_count.user_id, username, num_posts'))\
-            .select_from(join_)\
-            .order_by(text('num_posts DESC'))
-        num_posts = self.db_conn.execute(query).fetchall()
-        self.df_num_posts = pd.DataFrame(num_posts).reset_index(drop=True)
-
-        return self.df_num_posts
-
     def get_tweet_dates_details(self) -> DataFrame:
         """
-        Get the users and the dates of their tweets.
+        Gets the date, author id and tweet id of the tweets.
 
         Returns:
         --------
-            - `DataFrame`: dataframe with the information
+            - `DataFrame`: tweet information
         """
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
@@ -552,11 +532,11 @@ class DB:
 
     def get_tweets_to_conexion(self) -> DataFrame:
         """
-        Get the tweets that are part of a conversation (that have root tweet)
+        Gets the tweets that are part of a conversation (that have root tweet)
 
         Returns
         -------
-            - `DataFrame`: dataframe with the information
+            - `DataFrame`: tweets that are part of a conversation
         """
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
@@ -571,17 +551,16 @@ class DB:
 
     def get_root_tweets(self, df: DataFrame) -> DataFrame:
         """
-        Get the root tweets of the conversations. This method removes the
-        tweets that are not retweets, replies or quotes.
+        Gets the independent root tweets of the conversations,
+        that is, the tweets that are not retweets, replies or quotes.
 
         Arguments
         ----------
-            - df (`DataFrame`): dataframe that contains the possible
-            root tweets
+            - df (`DataFrame`): tweets to study
 
         Returns
         -------
-            - `DataFrame`: dataframe that contains the root tweets
+            - `DataFrame`: lndependent root tweets
         """
         rt = Table('retweet', self.db_metadata, autoload_replace=True,
                    autoload_with=self.db_engine)
@@ -608,12 +587,12 @@ class DB:
 
     def get_sources_count(self) -> DataFrame:
         """
-        Get the sources of the tweets and the number of tweets that have that
+        Gets the sources of the tweets and the number of tweets that have that
         source.
 
         Returns
         -------
-            - `DataFrame`: dataframe with the information
+            - `DataFrame`: sources and number of tweets that have each source
         """
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
@@ -625,29 +604,27 @@ class DB:
 
     def get_tree(self, df: DataFrame, tweet: Series, isroot: bool = False,
                  replies: bool = True) -> tuple[dict, DataFrame]:
-        # TODO
         """
         Get the tree of the conversation of the given tweets.
 
         Arguments
         ----------
-            - df (`Dataframe`): dataframe that contains all the tweets
-            to study.
-            - roots (`Dataframe`): dataframe that contains the root tweets to
-            get the tree from.
-            - isroot (`bool`, `optional`): flag to indicate if the given tweet
+            - df (`Dataframe`): all the tweets to study.
+            - tweet (`Series`): tweet to get the tree from.
+            - isroot (`bool`, `optional`): indicates if the given tweet
             is the root of the conversation. Defaults to False.
+            - replies (`bool`, `optional`): indicates if the replies of the
+            tweet must be included in the tree. Defaults to True.
 
         Returns
         -------
-            - tuple[`dict`, `DataFrame`]: conversation's tree and the dataframe
-            with the tweets after delete the these that are part of the tree.
+            - `dict`: tree of the conversation of the given tweet.
+            - `DataFrame`: tweets to study after delete tweets in the tree.
         """
         tree = json.loads('{}')
         if isroot:
             tree['conversation_id'] = int(tweet['conversation_id'])
             tree['root'] = int(tweet['id'])
-            # tree['start'] = tweet['created_at']
         else:
             tree['id'] = int(tweet['id'])
         rt, df = self._get_rt(df, tweet)
@@ -664,18 +641,17 @@ class DB:
 
     def _get_rt(self, df: DataFrame, tweet: Series) -> tuple[list, DataFrame]:
         """
-        Get the retweets of the given tweet.
+        Gets the users that retweeted the given tweet.
 
         Arguments
         ----------
-            - df (`Dataframe`): dataframe that contains all the tweets
-            to study.
-            - tweet (`ìnt`): id of the tweet to get the retweets from.
+            - df (`Dataframe`): all the tweets to study.
+            - tweet (`Series`): tweet data to get the retweets from.
 
         Returns
         -------
-            - tuple[`list`, `DataFrame`]: list of the retweets id and the
-            dataframe of the tweets to study after retweets deletion.
+            - `list`: id of the users that retweeted the given tweet.
+            - `DataFrame`: tweets to study after delete the retweets.
         """
         rt = Table('retweet', self.db_metadata, autoload_replace=True,
                    autoload_with=self.db_engine)
@@ -689,18 +665,17 @@ class DB:
 
     def _get_qt(self, df: DataFrame, tweet: Series) -> tuple[list, DataFrame]:
         """
-        Get the quotes of the given tweet.
+        Gets the quotes of the given tweet.
 
         Arguments
         ----------
-            - df (`Dataframe`): dataframe that contains all the tweets
-            to study.
-            - tweet (`int`): id of the tweet to get the quotes from.
+            - df (`Dataframe`): all the tweets to study.
+            - tweet (`Series`): tweet data to get the quotes from.
 
         Returns
         -------
-            - tuple[`list`, `DataFrame`]: list of the quotes id and the
-            dataframe of the tweets to study after delete the quotes.
+            - `list`: id of the quotes of the given tweet.
+            - `DataFrame`: tweets to study after delete the quotes.
         """
         qt_list = []
         qt = Table('quoted', self.db_metadata, autoload_replace=True,
@@ -718,18 +693,18 @@ class DB:
 
     def _get_rp(self, df: DataFrame, tweet: Series) -> tuple[list, DataFrame]:
         """
-        Get the replies of the given tweet.
+        Gets the replies of the given tweet.
 
         Arguments
         ----------
             - df (`DataFrame`): dataframe that contains all the tweets
             to study.
-            - tweet (`int`): id of the tweet to get the replies from.
+            - tweet (`Series`): tweet data to get the replies from.
 
         Returns
         -------
-            - tuple[`list`, `DataFrame`]: list of the replies id and the
-            dataframe of the tweets to study after delete the replies.
+            - `list`: id of the replies of the given tweet.
+            - `DataFrame`: tweets to study after delete the replies.
         """
         replies_list = []
         poss_rps = df.loc[df['conversation_id'] == tweet['conversation_id']]
@@ -743,15 +718,15 @@ class DB:
 
     def _get_like(self, tweet: Series) -> list:
         """
-        Get the likes of the given tweet.
+        Gets the users that liked the given tweet.
 
         Arguments
         ----------
-            - tweet (`int`): id of the tweet to get the likes from.
+            - tweet (`Series`): tweet data to get the likes from.
 
         Returns
         -------
-            - `list`: user ids of the likes.
+            - `list`: user ids that liked the given tweet.
         """
         like = Table('like_tweet', self.db_metadata, autoload_replace=True,
                      autoload_with=self.db_engine)
@@ -760,7 +735,14 @@ class DB:
         likes = [t for t, in self.db_conn.execute(like_query).fetchall()]
         return likes
 
-    def get_tweet_text(self):
+    def get_tweet_text(self) -> DataFrame:
+        """
+        Gets the text of the tweets
+
+        Returns
+        -------
+            - `DataFrame`: tweets data including the text
+        """
         tweet = Table('tweet', self.db_metadata, autoload_replace=True,
                       autoload_with=self.db_engine)
         query = select(tweet.c.id, tweet.c.text, tweet.c.lang,
@@ -772,13 +754,19 @@ class DB:
 
         return tweets
 
-    def hashtag_usage_statics(self):
+    def hashtag_usage_statics(self) -> DataFrame:
+        """
+        Gets the number of tweets that use each hashtag.
+
+        Returns
+        -------
+            - `DataFrame`: usage information of the hashtags.
+        """
         tw = Table('tweet', self.db_metadata, autoload_replace=True,
                    autoload_with=self.db_engine)
         ht_tw = Table('hashtagt_tweet', self.db_metadata,
                       autoload_replace=True, autoload_with=self.db_engine)
-        # user = Table('user', self.db_metadata, autoload_replace=True,
-        #              autoload_with=self.db_engine)
+
         join_ = tw.join(ht_tw)
         query_ = select(tw.c.author_id, func.count().label('used_hashtags'))\
             .select_from(join_).group_by(tw.c.author_id, tw.c.id)\
@@ -787,7 +775,21 @@ class DB:
 
         return pd.DataFrame(statics).reset_index(drop=True)
 
-    def get_users_info(self, users, columns):
+    def get_users_info(self, users: List[int],
+                       columns: List[str] = []) -> DataFrame:
+        """
+        Gets the requested information of the given users.
+
+        Arguments
+        ----------
+            - users (`List[int]`): ids of the users to get the information
+            - columns (`List[str]`, `optional`): columns to get from the
+            user table. Defaults to [].
+
+        Returns
+        -------
+            - `DataFrame`: required information of the given users
+        """
         user = Table('user', self.db_metadata, autoload_replace=True,
                      autoload_with=self.db_engine)
         columns = set(columns) & set(user.columns.keys()) \

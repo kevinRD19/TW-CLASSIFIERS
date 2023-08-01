@@ -7,7 +7,7 @@ import pandas as pd
 from utils.node import Like, Quote, Reply, Retweet, Tweet
 from utils.DB import DB
 from utils.utils import (select_emotion_classifier, select_layout,
-                         CONFIG)
+                         CONFIG, show_or_save, save_plot)
 from nrclex import NRCLex
 from random import sample
 from enum import Enum
@@ -17,32 +17,39 @@ warnings.filterwarnings("ignore")
 # URI of the database with the appropiate credentials
 db_uri = CONFIG['uri']
 
-# Colors and sizes of the nodes depending on the type of node
+# Colors, sizes and weights of the nodes depending on the type of node
 colors = {'Tweet': 'blue', 'Retweet': 'green', 'Like': 'red',
           'Quote': 'yellow', 'Reply': 'orange'}
 sizes = {'Tweet': 5000, 'Retweet': 800, 'Like': 1000, 'Quote': 3000,
          'Reply': 3000}
 weights = {'RT': 0.1, 'LK': 0.2, 'QT': 1, 'RP': 2}
+
+# Layouts and their attributes
 layouts_attr = {nx.spring_layout: {'k': 1}, nx.kamada_kawai_layout: {}}
 
-# Colors of the different emotions
+# Colors for the emotions in the multiclass classifier
 emot_colors = {'anger': 'red', 'anticipation': 'orange', 'joy': 'yellow',
                'trust': 'olive', 'fear': 'green', 'surprise': 'teal',
                'sadness': 'blue', 'disgust': 'violet', 'negative': 'black',
                'positive': '#D0D3D4', 'neutral': '#616A6B'}
+
+# Colors for the emotions in the extended bipolar classifier
 bipolar_colors = {'negative': 'red', 'neutral-negative': 'blue',
                   'neutral': 'black', 'neutral-positive': 'yellow',
                   'positive': 'green', }
 
 
 class EmotionType(Enum):
+    """
+    Enumeration that represents the different types of tone classifier.
+    """
     BIPOLAR = 0
     MULTICLASS = 1
 
 
 class TweetGrah(nx.DiGraph):
     """
-    Class that represents a graph to represent the interactions of users
+    Directed graph graph to represent the interactions of users
     with a tweet.
     """
     db = DB(db_uri)
@@ -64,7 +71,7 @@ class TweetGrah(nx.DiGraph):
             self.retweets = rt
             self.replies = rp
             self.likes = like
-            # Creamos el nodo raíz
+            # Create the root node
             root = self.db.get_tweets_by_ids(graph_data['root'],
                                              ['id', 'author_id', 'text',
                                               'created_at']).iloc[0]
@@ -82,9 +89,8 @@ class TweetGrah(nx.DiGraph):
         ----------
             - parent (`Tweet`): Tweet (node) of which we want to add the
             interactions.
-            - graph_data (`dict`, `optional`): Dictionary with the tweet's
-            interactions
-            info. This dict works as a JSON Defaults to {}.
+            - graph_data (`dict`, `optional`): Dictionary with the tweet
+            interactions. This dict works as a JSON Defaults to {}.
         """
         if self.retweets:
             retweets = graph_data['retweets']
@@ -112,9 +118,9 @@ class TweetGrah(nx.DiGraph):
         recursively.
 
         Arguments
-        ----
+        ----------
             - parent (Tweet): Tweet (node) of which we want to add the quote.
-            - graph_data (dict, optional): Dictionary with the quote's
+            - graph_data (dict, optional): Dictionary with the quote
             interactions info. This dict works as a JSON. Defaults to {}.
             - level (int, optional): _description_. Defaults to 1.
         """
@@ -163,7 +169,7 @@ class TweetGrah(nx.DiGraph):
         Arguments
         ----
             - parent (Tweet): Tweet (node) of which we want to add the reply.
-            - graph_data (dict, optional): Dictionary with the reply's
+            - graph_data (dict, optional): Dictionary with the reply
             interactions info. This dict works as a JSON. Defaults to {}.
             - level (int, optional): _description_. Defaults to 1.
         """
@@ -176,31 +182,38 @@ class TweetGrah(nx.DiGraph):
         self.edge[(parent, rp)] = 'RP'
         self._add_node_interactions(rp, graph_data, False)
 
-    def get_max_branch_nodes(self):
+    def get_max_branch_nodes(self) -> list:
         """
         Returns the nodes of the max branch of the tree.
 
         Returns
         -------
-            : _description_
+            - `List`: nodes of the longest branch of the tree.
         """
         return nx.algorithms.dag.dag_longest_path(self)
 
-    def get_sheed_nodes(self):
+    def get_leaf_nodes(self):
         """
-        Returns the nodes of the sheed of the tree.
+        Returns the leaf nodes of the tree, i.e. the nodes that have no
+        children.
 
         Returns
         -------
-            : _description_
+            - `List`: leaf nodes of the tree.
         """
         sheed_nodes = [node.created_at for node in self.nodes
                        if self.out_degree(node) == 0]
+
         return sheed_nodes
 
     def show(self, verbose: bool = False):
         """
-        Shows the graph figure and saves it in the images/graph folder.
+        Shows the graph with the different interaction types.
+
+        Arguments
+        ----------
+            - verbose (bool, optional): Indicates if the program should show
+            the information in the nodes of the graph (id, text, author).
         """
         layout = getattr(nx, select_layout())
         attributes = {'color': [], 'size': []}
@@ -219,11 +232,17 @@ class TweetGrah(nx.DiGraph):
         fig.set_size_inches(32, 18)
         plt.subplots_adjust(left=-0.07, right=1.0, top=1.0, bottom=0.0)
 
-        plt.show()
+        mode = show_or_save()
+        if mode == 'SAVE' or mode == 'SHOW AND SAVE':
+            path = 'images/tree/interactions/'
+            name = f'{self.root.id}{layout.__name__.split("_")[0]}'
+            save_plot(plt, name, path)
+        if mode == 'SHOW' or mode == 'SHOW AND SAVE':
+            plt.show()
 
     def show_emotion(self):
         """
-        Shows the graph figure and saves it in the images/graph folder.
+        Shows the graph wtth the different emotions/semtiments of the tweets.
         """
         _type = EmotionType[select_emotion_classifier()]
         layout = getattr(nx, select_layout())
@@ -249,14 +268,28 @@ class TweetGrah(nx.DiGraph):
         fig.set_size_inches(32, 18)
         plt.subplots_adjust(left=-0.07, right=1.0, top=1.0, bottom=0.0)
 
-        plt.show()
+        mode = show_or_save()
+        if mode == 'SAVE' or mode == 'SHOW AND SAVE':
+            path = 'images/tree/tone/'
+            name = f'{self.root.id}{str(_type).split(".")[-1]}'
+            save_plot(plt, name, path)
+        if mode == 'SHOW' or mode == 'SHOW AND SAVE':
+            plt.show()
 
     def __bipolar_clasifier(self, attributes: dict, classifier):
         """
+        Classifies the tweets in the graph using the classifier
+        passed as argument. Habitually, the classifier is a
+        bipolar classifier.
+
+        Arguments
+        ----------
+            - attributes (dict): Dictionary with the attributes of the nodes
+            for this classifier type.
+            - classifier: Classifier to use.
         """
         for node in self.nodes:
             results = classifier(node.text)
-            # print(results)
             stars = int(results[0]['label'].split()[0])
             emotion = list(bipolar_colors.keys())[stars - 1]
             node.emotion = emotion
@@ -267,6 +300,12 @@ class TweetGrah(nx.DiGraph):
 
     def __multiple_clasifier(self, attributes: dict):
         """
+        Classfiies the tweets in the graph using the multiclass classifier.
+
+        Arguments
+        ----------
+            - attributes (dict): Dictionary with the attributes of the nodes
+            for this classifier type.
         """
         for node in self.nodes:
             text_object = NRCLex(node.text)
@@ -278,7 +317,6 @@ class TweetGrah(nx.DiGraph):
                 if max_value != 0 else []
             emotion = sample(emotions, 1)[0] if emotions else ('neutral', 0)
             node.emotion = emotion
-            # print(node.emotion) if node.emotion[0] == 'neutral' else None
 
             if node.emotion[0] == 'neutral':
                 self.stats.update({
@@ -295,37 +333,49 @@ class TweetGrah(nx.DiGraph):
             attributes['size'].append(300 if node.emotion[0] == 'neutral'
                                       else 1000)
 
-    def get_statics(self):
+    def get_statics(self) -> dict:
         """
+        Shows some statics of the conversation graph (start, end,
+        maximum depht and number of tweets).
+
+        Returns
+        -------
+            - `Dict`: Dictionary with some statics of the graph.
         """
+        print('Graph statics\n' + '-'*35)
+
         statics = {}
         start = self.root.created_at
         statics['start'] = start
-        print(f'\tStart: {start}')
+        print(f'   - Start: {start}')
 
-        end = max(self.get_sheed_nodes())
+        end = max(self.get_leaf_nodes())
         statics['end'] = end
-        print(f'\tEnd: {end}')
+        print(f'   - End: {end}')
 
         max_depht = len(self.get_max_branch_nodes())
         statics['max_depht'] = max_depht
-        print(f'\tMaximum Depht: {max_depht}')
+        print(f'   - Maximum Depht: {max_depht}')
 
         num_nodes = len(self.nodes)
         statics['num_tweets'] = num_nodes
-        print(f'\tNumber of Tweets: {num_nodes}')
+        print(f'   - Number of Tweets: {num_nodes}')
 
         return statics
 
-    def get_emotion_stats(self):
+    def get_emotion_stats(self) -> pd.DataFrame:
         """
+        Returns a dataframe with a summary of the emotions in
+        the conversation. show_emotion() must be called before.
+
+        Returns
+        -------
+            - `DataFrame`: Dataframe with the emotions summary.
         """
         _class = self.stats.keys()
         values = np.array(list(self.stats.values()))
         num_tweets = sum(values)
         df = pd.DataFrame({'Class': _class, 'Values': values,
                            'Percentage': values / num_tweets})
-        print(sum(df['Percentage']))
-        print(sum(df['Values']), len(self.nodes))
 
         return df

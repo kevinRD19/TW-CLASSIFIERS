@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+from itertools import chain
 
 
 c_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,19 +21,19 @@ if __name__ == '__main__':
                                      'campañas según el número de usos')
     parser.add_argument('-i', '--ignore', action='store_true', default=False,
                         help='Flag to ignore the data in the data folder' +
-                        ' and generate a new one from the database')
+                        ' and generate it from the database')
     parser.add_argument('-c', '--conversation', type=int, nargs='+',
-                        help='Conversation ids to generate the tree JSON file')
+                        help='Conversation ids to generate the tree JSON ' +
+                        'files (if not specified, all root tweets are used)')
     args = parser.parse_args()
 
     db = DB(db_uri)
     df_root_tweets, df_tweets = get_useful_roots(db, args.ignore, True)
 
-    os.makedirs('data/tree5', exist_ok=True)
     conversations = []
-    files = os.listdir('data/tree/') + os.listdir('data/tree2/') + \
-        os.listdir('data/tree3/') + os.listdir('data/tree4/') + \
-        os.listdir('data/tree5/')
+    files = list(chain.from_iterable([
+        os.listdir(_dir) for _dir in CONFIG.get('tree_dirs', ['data/tree'])
+    ]))
 
     for _file in files:
         conversation_id = int(_file.split('.')[0])
@@ -48,4 +49,5 @@ if __name__ == '__main__':
 
     for _, root in roots.iterrows():
         load_tree(db, root, df_tweets)
+
     db.close_connection()

@@ -6,3 +6,5 @@ images/*.pdf
 tree/graph_statics.py
 classifiers/topic_classifier.py
 classifiers/topic_classifier.ipynb
+config.json
+*/__pycache__/

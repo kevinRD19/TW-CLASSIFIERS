@@ -80,7 +80,7 @@ if __name__ == '__main__':
                                      'number of uses')
     parser.add_argument('-i', '--ignore', action='store_true', default=False,
                         help='Flag to ignore the data in the data folder' +
-                        ' and generate a new one from the database')
+                        ' and generate it from the database')
     args = parser.parse_args()
 
     db = DB(db_uri)

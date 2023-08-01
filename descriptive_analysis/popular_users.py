@@ -15,13 +15,27 @@ sys.path.append(p_dir)
 from utils.DB import DB # noqa
 from utils.utils import (Radar, get_useful_roots, load_tree, # noqa
                          load_root_tweets, get_dates, # noqa
-                         CONFIG, show_or_save) # noqa
+                         CONFIG, show_or_save, # noqa
+                         save_plot) # noqa
 from utils.graph import TweetGrah # noqa
 
 db_uri = CONFIG['uri']
 
 
 def get_non_calculated(root_tweets: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
+    """
+    Gets the independent root tweets statics/info that has not been
+    calculated yet
+
+    Arguments
+    ----------
+        - root_tweets (`DataFrame`): independent root tweets to study
+
+    Returns
+    -------
+        - `DataFrame`: 
+        - `dict`: _description_
+    """
     if 'graph_statics.csv' not in os.listdir('data'):
         data = {
             'tweet_id': [], 'conversation_id': [], 'author_id': [],
@@ -53,9 +67,7 @@ def get_user_statics(db, ignore):
 
     df_root_tweets, df_tweets = get_useful_roots(db, args.ignore, True)
 
-    roots = df_root_tweets.loc[
-        df_root_tweets['conversation_id'].isin(args.conversation)
-    ] if args.conversation else df_root_tweets
+    roots = df_root_tweets.copy()
 
     roots, data = get_non_calculated(roots)
 
@@ -135,12 +147,17 @@ def radar_chart(df_tweets, sortby=['num_tweets']):
                                           'size': 30})
     fig.subplots_adjust(top=1.1, bottom=-0.7)
     fig.set_size_inches(32, 18)
-    os.makedirs('images/users/popular', exist_ok=True)
-    last_name = reduce(lambda x, y: ''.join(x.split('_')).capitalize() +
-                       ''.join(y.split('_')).capitalize(), sortby) \
-        if len(sortby) > 1 else \
-        ''.join(sortby[0].split('_')).capitalize()
-    plt.savefig(f'images/users/popular/{last_name}.png', dpi=350)
+
+    mode = show_or_save()
+    if mode == 'SAVE' or mode == 'SHOW AND SAVE':
+        path = 'images/users/popular/'
+        name = reduce(lambda x, y: ''.join(x.split('_')).capitalize() +
+                      ''.join(y.split('_')).capitalize(), sortby) \
+            if len(sortby) > 1 else \
+            ''.join(sortby[0].split('_')).capitalize()
+        save_plot(plt, name, path)
+    if mode == 'SHOW' or mode == 'SHOW AND SAVE':
+        plt.show()
 
 
 if __name__ == '__main__':
@@ -149,16 +166,17 @@ if __name__ == '__main__':
                                      'campañas según el número de usos')
     parser.add_argument('-i', '--ignore', action='store_true', default=False,
                         help='Flag to ignore the data in the data folder' +
-                        ' and generate a new one from the database')
+                        ' and generate it from the database')
     args = parser.parse_args()
 
+    # Gets the statics of the users and change the duration mean to days
     db = DB(db_uri)
-
     df_root_tweets = get_user_statics(db, args.ignore)
-    print(df_root_tweets)
     df_root_tweets['duration'] = df_root_tweets['duration']. \
         astype('timedelta64[D]').dt.days
 
+    # Filter the users with unless 5 or more tweets,
+    # and 10 or more conversations
     df_root_tweets = df_root_tweets.loc[df_root_tweets['num_tweets'] >= 5]
     df_root_tweets = df_root_tweets.loc[
         df_root_tweets['num_conversations'] >= 10]

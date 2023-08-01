@@ -24,7 +24,7 @@ if __name__ == '__main__':
                         help='Indicates the top number of hashtags to show')
     parser.add_argument('-i', '--ignore', action='store_true', default=False,
                         help='Flag to ignore the data in the data folder' +
-                        ' and generate a new one from the database')
+                        ' and generate it from the database')
     args = parser.parse_args()
     os.makedirs('data', exist_ok=True)
     if 'count_categories.csv' not in os.listdir('data') or args.ignore:

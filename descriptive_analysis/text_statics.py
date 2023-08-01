@@ -11,7 +11,7 @@ c_dir = os.path.dirname(os.path.abspath(__file__))
 p_dir = os.path.dirname(c_dir)
 sys.path.append(p_dir)
 
-from utils.utils import (clear_quote, clear_replies, # noqa
+from utils.utils import (clean_quote, clean_replies, # noqa
                          show_or_save, CONFIG) # noqa
 from utils.DB import DB # noqa
 
@@ -33,13 +33,13 @@ def lenght_static():
     df_quotes = db.get_quotes()
     df_tweet['text'] = np.where(df_tweet['id'].isin(df_quotes['tweet_id']),
                                 df_tweet['text'].apply(
-                                    lambda x: clear_quote(x)),
+                                    lambda x: clean_quote(x)),
                                 df_tweet['text'])
 
     df_replies = db.get_replies()
     df_tweet['text'] = np.where(df_tweet['id'].isin(df_replies['tweet_id']),
                                 df_tweet['text'].apply(
-                                    lambda x: clear_replies(x)),
+                                    lambda x: clean_replies(x)),
                                 df_tweet['text'])
 
     df_tweet['Number of characters'] = df_tweet['text'].apply(lambda x: len(x))
@@ -199,7 +199,7 @@ if __name__ == '__main__':
                                      'campañas según el número de usos')
     parser.add_argument('-i', '--ignore', action='store_true', default=False,
                         help='Flag to ignore the data in the data folder' +
-                        ' and generate a new one from the database')
+                        ' and generate it from the database')
     args = parser.parse_args()
     os.makedirs('data', exist_ok=True)
     db = DB(db_uri)

@@ -20,25 +20,27 @@ if __name__ == '__main__':
                                      'campañas según el número de usos')
     parser.add_argument('-i', '--ignore', action='store_true', default=False,
                         help='Flag to ignore the data in the data folder' +
-                        ' and generate a new one from the database')
+                        ' and generate it from the database')
     parser.add_argument('-c', '--conversation', type=int, default=None,
                         required=True, help='Conversation id to generate ' +
                         'the sentiment tree')
     args = parser.parse_args()
 
+    # Gets all independent root tweets
     db = DB(db_uri)
     df_root_tweets, df_tweets = get_useful_roots(db, args.ignore)
 
     tweet = df_root_tweets[
         df_root_tweets['conversation_id'] == args.conversation
     ]
-
     if tweet.empty:
         sys.exit('Conversation ID is not from a root tweet')
 
+    # Gets the tree of the conversation
     tweet = tweet.iloc[0]
     tree, df_tweets = load_tree(db, tweet, df_tweets)
 
+    # Generates the emotion/sentiment graph
     graph = TweetGrah(tree, rt=False, like=False)
     graph.show_emotion()
     df_stats = graph.get_emotion_stats()

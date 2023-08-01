@@ -1,4 +1,4 @@
-from utils.utils import clear_replies, clear_text, clear_quote
+from utils.utils import clean_replies, clean_text, clean_quote
 
 
 class Tweet:
@@ -15,7 +15,7 @@ class Tweet:
         """
         self.id = int(tweet_info['id'])
         self.author_id = int(tweet_info['author_id'])
-        self.text = clear_text(str(tweet_info['text']))
+        self.text = clean_text(str(tweet_info['text']))
         self.created_at = tweet_info['created_at']
         self.emotion = None
 
@@ -27,7 +27,8 @@ class Tweet:
         -------
             - `str`: string that contains the tweet info in a human-readable
             format. Contain the tweet id, user id and the text. If the tweet is
-            a number node only contains the text.
+            a number node only contains the text. In emotion nodes, returns an
+            empty string.
         """
         return f'Tweet:\n{self.id}\nUsuario: {self.author_id}\n' +\
                f'Texto:\n{self.text[:20]}' if not self.emotion and \
@@ -41,7 +42,7 @@ class Quote(Tweet):
     tweet node.
     """
     def __init__(self, tweet_info: dict) -> Tweet:
-        tweet_info['text'] = clear_quote(tweet_info['text'])
+        tweet_info['text'] = clean_quote(tweet_info['text'])
         super().__init__(tweet_info)
 
 
@@ -51,7 +52,7 @@ class Reply(Tweet):
     tweet node.
     """
     def __init__(self, tweet_info: dict) -> Tweet:
-        tweet_info['text'] = clear_replies(tweet_info['text'])
+        tweet_info['text'] = clean_replies(tweet_info['text'])
         super().__init__(tweet_info)
 
 
@@ -65,7 +66,7 @@ class Retweet:
 
         Arguments
         ----------
-            - tweet_info (`dict`): dictionary that contains the tweet info.
+            - user_id (`int`): id of the user that retweeted the tweet.
         """
         self.user_id = user_id
 
@@ -75,8 +76,7 @@ class Retweet:
 
         Returns
         -------
-            `str`: string that contains the user id. If the retweet id and the
-            user id are the same, adds a '+' to the user id.
+            `str`: string that contains the user id.
         """
         return f'Usuario\n{self.user_id}'
 
@@ -91,7 +91,7 @@ class Like:
 
         Arguments
         ----------
-            - user_id (`int`): user id of the user that liked a tweet.
+            - user_id (`int`): id of the user that liked a tweet.
         """
         self.user_id = user_id
 

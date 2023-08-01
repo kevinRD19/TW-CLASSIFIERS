@@ -21,7 +21,7 @@ if __name__ == '__main__':
                                      'campañas según el número de usos')
     parser.add_argument('-i', '--ignore', action='store_true', default=False,
                         help='Flag to ignore the data in the data folder' +
-                        ' and generate a new one from the database')
+                        ' and generate it from the database')
     group = parser.add_argument_group('Execution mode. Default over all ' +
                                       'root tweets')
     mode = group.add_mutually_exclusive_group()
@@ -29,16 +29,15 @@ if __name__ == '__main__':
                       help='Conversation id to generate the conversation tree')
     mode.add_argument('-n', '--numconv', type=int,
                       help='Number of conversations to generate the trees')
-    mode.add_argument('-v', '--verbose', action='store_true', default=False,
-                      help='Indicates if the program should show the ' +
-                      'information in the nodes of the graph (id, text, ' +
-                      'author)')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        help='Indicates if the program should show the ' +
+                        'information in the nodes of the graph (id, text, ' +
+                        'author)')
     args = parser.parse_args()
 
+    # Gets all independent root tweets
     db = DB(db_uri)
     df_root_tweets, df_tweets = get_useful_roots(db, args.ignore, True)
-
-    os.makedirs('data/tree5', exist_ok=True)
 
     if args.conversation:
         roots = df_root_tweets[
@@ -52,7 +51,6 @@ if __name__ == '__main__':
     else:
         roots = df_root_tweets
 
-    os.makedirs('data/tree', exist_ok=True)
     for _, root in roots.iterrows():
         tree, df_tweets = load_tree(db, root, df_tweets)
         graph = TweetGrah(tree)

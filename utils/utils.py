@@ -12,12 +12,15 @@ from pandas.plotting import scatter_matrix
 from utils.DB import DB
 import matplotlib.pyplot as plt
 
-
-dirs = ['data/tree', 'data/tree2', 'data/tree3', 'data/tree4', 'data/tree5']
+# Loads the configuration file
 CONFIG = json.load(open('config.json', 'r'))
 
 
 class Radar(object):
+    """
+    Class that represents a radar (spider) chart. It is prepared
+    for 4 or 5 attributes (axes).
+    """
     def __init__(self, figure, title, labels, rect=None):
         if rect is None:
             rect = [0.05, 0.05, 0.9, 0.9]
@@ -37,40 +40,31 @@ class Radar(object):
                 if angle == 0:
                     tick.set_horizontalalignment('left')
                     tick.set_verticalalignment('top')
-                    # tick.set_position((0, 0))
                 elif angle == 90:
                     tick.set_horizontalalignment('center')
                     tick.set_verticalalignment('bottom')
-                    # tick.set_position((0, 0))
                 elif angle == 180:
                     tick.set_horizontalalignment('right')
                     tick.set_verticalalignment('bottom')
-                    # tick.set_position((0, 0))
                 elif angle == 270:
                     tick.set_horizontalalignment('center')
                     tick.set_verticalalignment('top')
-                    # tick.set_position((0, 0))
             elif num_axes == 5:
                 if angle == 0:
                     tick.set_horizontalalignment('left')
                     tick.set_verticalalignment('top')
-                    # tick.set_position((0, 0))
                 elif angle == 72:
                     tick.set_horizontalalignment('left')
                     tick.set_verticalalignment('bottom')
-                    # tick.set_position((0, 0))
                 elif angle == 144:
                     tick.set_horizontalalignment('right')
                     tick.set_verticalalignment('bottom')
-                    # tick.set_position((0, 0))
                 elif angle == 216:
                     tick.set_horizontalalignment('right')
                     tick.set_verticalalignment('top')
-                    # tick.set_position((0, 0))
                 else:
                     tick.set_horizontalalignment('left')
                     tick.set_verticalalignment('center')
-                    # tick.set_position((0, 0))
 
         for ax in self.axes[1:]:
             ax.patch.set_visible(False)
@@ -84,40 +78,45 @@ class Radar(object):
             ax.set_ylim(0, 5)
 
     def plot(self, values, *args, **kw):
+        """
+        Plots the radar chart.
+
+        Arguments
+        ----------
+            - values (`list`): list of values to be plotted.
+        """
         angle = np.deg2rad(np.r_[self.angles, self.angles[0]])
         values = np.r_[values, values[0]]
         self.ax.plot(angle, values, *args, **kw)
 
 
-def clear_text(text: str, hashtag: bool = True) -> str:
+def clean_text(text: str, hashtag: bool = True) -> str:
     """
-    Clear quotes from a text.
+    Cleans the text deleting the mentions, urls, emoticons,
+    hashtags and special characters.
 
     Arguments
     ----------
         - text (`str`): text to be cleaned.
+        - hashtag (`bool`): flag to indicate if the hashtags
+        must be deleted.
 
     Returns
     ----------
-        `str`: text without quotes.
+        `str`: text after the cleaning process.
     """
-    # text = _clear_retweet(text)
-    text = clear_emoticons(text)
-    text = clear_mentions(text)
-    text = clear_url(text)
+    text = clean_emoticons(text)[0]
+    text = clean_mentions(text)
+    text = clean_url(text)
     if hashtag:
-        text = clear_hashtags(text)
-    text = clear_characters(text)
-    # text = _clear_punctuation(text)
-    # text = _clear_stopwords(text)
-    # text = _clear_spaces(text)
-    # print(text)
+        text = clean_hashtags(text)
+    text = clean_characters(text)
     return text
 
 
-def clear_replies(text: str) -> str:
+def clean_replies(text: str) -> str:
     """
-    Clear quotes from a text.
+    Cleans reply header from a tweet text.
 
     Arguments
     ----------
@@ -125,7 +124,7 @@ def clear_replies(text: str) -> str:
 
     Returns
     ----------
-        `str`: text without quotes.
+        `str`: text without reply header.
     """
     i = 0
     tweets_text = text.split()
@@ -135,9 +134,9 @@ def clear_replies(text: str) -> str:
     return ' '.join(tweets_text[i:])
 
 
-def clear_quote(text: str) -> str:
+def clean_quote(text: str) -> str:
     """
-    Clear quotes from a text.
+    Cleans quoted tweet link from a tweet text.
 
     Arguments
     ----------
@@ -145,14 +144,14 @@ def clear_quote(text: str) -> str:
 
     Returns
     ----------
-        `str`: text without quotes.
+        - `str`: text without quoted tweet link.
     """
     return ' '.join(text.split()[:-1])
 
 
-def clear_mentions(text: str) -> str:
+def clean_mentions(text: str) -> str:
     """
-    Clear mentions from a text.
+    Cleans mentions from a tweet text.
 
     Arguments
     ----------
@@ -160,35 +159,16 @@ def clear_mentions(text: str) -> str:
 
     Returns
     ----------
-        `str`: text without quotes.
+        - `str`: text without mentions.
     """
-    # text = clear_replies(text)
     text_words = text.split()
     text = ' '.join(word for word in text_words if not word.startswith('@'))
-    # text = re.sub(r'^@*', '', text)
     return text
 
 
-# def _clear_retweet(text: str) -> str:
-#     """
-#     Clear retweet from a text.
-
-#     Arguments
-#     ----------
-#         - text (`str`): text to be cleaned.
-
-#     Returns
-#     ----------
-#         `str`: text without retweet.
-#     """
-#     if text.startswith('RT @'):
-#         text = text.split(':', 1)[1]
-#     return text
-
-
-def clear_url(text: str) -> str:
+def clean_url(text: str) -> str:
     """
-    Clear urls from a text.
+    Cleans urls from a text.
 
     Arguments
     ----------
@@ -196,29 +176,30 @@ def clear_url(text: str) -> str:
 
     Returns
     ----------
-        `str`: text without urls.
+        - `str`: text without urls.
     """
     pattern = "https?://[^\\s]+"
     return re.sub(pattern, '', text)
 
 
-def clear_emoticons(text: str) -> str:
+def clean_emoticons(text: str) -> Tuple[str, list]:
     """
-    Obtains emoticons from a text.
+    Cleans and obtains emoticons from a text.
 
-    Args:
-        text (str): _description_
+    Arguments
+    ----------
+       - text (`str`): text to be cleaned.
 
-    Returns:
-        str: _description_
+    Returns
+    ----------
+        - `str`: text without emoticons.
+        - `list`: list of emoticons.
     """
     emotes = []
     words = []
     for word in text.split():
         word_emotes = [letter for letter in word if emoji.is_emoji(letter)] if\
             len(word) > 1 else [word] if emoji.is_emoji(word) else []
-        # if word_emotes:
-        #     print(word_emotes)
         for emote in word_emotes:
             word = word.replace(emote, '')
         if not emoji.is_emoji(word):
@@ -226,15 +207,15 @@ def clear_emoticons(text: str) -> str:
         else:
             emotes.append(word)
         emotes.extend(word_emotes)
-    # print(' '.join(words))
     if len(words) >= 1:
         words[-1] = words[-1][:-2] if words[-1].endswith('…') else words[-1]
-    return ' '.join(words)
+
+    return ' '.join(words), emotes
 
 
-def clear_hashtags(text: str) -> str:
+def clean_hashtags(text: str) -> str:
     """
-    Clear hashtags from a text.
+    Cleans hashtags from a text.
 
     Arguments
     ----------
@@ -254,9 +235,9 @@ def clear_hashtags(text: str) -> str:
     return text
 
 
-def clear_characters(text: str) -> str:
+def clean_characters(text: str) -> str:
     """
-    Clear characters from a text.
+    Cleans non alphanumeric characters from a text.
 
     Arguments
     ----------
@@ -264,48 +245,64 @@ def clear_characters(text: str) -> str:
 
     Returns
     ----------
-        `str`: text without characters.
+        `str`: text without non alphanumeric characters.
     """
-    # pattern = "[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ]"
-    # return re.sub(pattern, ' ', text)
     text = re.sub(r'[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ]', ' ', text)
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'^\s+|\s+$', '', text)
-    # print(text)
+
     return text
 
 
-def select_emotion_classifier():
+def select_emotion_classifier() -> str:
     """
-    Selects the emotion classifier.
+    Inquirer prompt to select the emotion classifier.
+    Options are BIPOLAR or MULTICLASS.
 
     Returns
     ----------
-        `str`: emotion classifier.
+        - `str`: selected emotion classifier name.
     """
     title = 'Select emotion classifier'
     options = ['BIPOLAR', 'MULTICLASS']
     response = inquirer.prompt([inquirer.List('emotion_classifier',
                                               message=title,
                                               choices=options)])
+
     return response['emotion_classifier']
 
 
-def select_layout():
+def select_layout() -> str:
+    """
+    Inquirer prompt to select the layout for the tree graph.
+    Options are KAMADA_KAWAI or SPRING.
+
+    Returns
+    ----------
+        - `str`: selected layout name.
+    """
     title = 'Select layout for the graph'
     options = ['KAMADA_KAWAI', 'SPRING']
     response = inquirer.prompt([inquirer.List('layout', message=title,
                                               choices=options)])
+
     return f"{response['layout'].lower()}_layout"
 
 
-def tweets(db, ignore) -> pd.DataFrame:
+def tweets(db: DB, ignore: bool = False) -> pd.DataFrame:
     """
-    Get the tweets to generate the tree
+    Gets the tweets with the tweet count in the conversation.
+
+    Arguments
+    ---------
+        - db (`DB`): database connection.
+        - ignore (`bool`, optional): flag to ignore the data in the data folder
+        and generate it from the database. Defaults to False.
 
     Returns
     -------
-        : _description_
+        - `DataFrame`: dataframe that contains the tweets of a valid
+        conversation and the number of tweets in the conversation.
     """
     os.makedirs('data', exist_ok=True)
     if 'tweets_conexion.csv' not in os.listdir('data') or ignore:
@@ -320,14 +317,22 @@ def tweets(db, ignore) -> pd.DataFrame:
     return df_tweets
 
 
-def load_root_tweets(db, tweets: pd.DataFrame = None,
+def load_root_tweets(db: DB, tweets: pd.DataFrame = None,
                      ignore: bool = False) -> pd.DataFrame:
     """
-    Get the root tweets to generate the tree
+    Loads the independent root tweets of a valid conversation.
+
+    Arguments
+    ---------
+        - db (`DB`): database connection.
+        - tweets (`DataFrame`, optional): dataframe that contains the tweets
+        that can be root tweets. Defaults to None.
+        - ignore (`bool`, optional): flag to ignore the data in the data folder
+        and generate it from the database. Defaults to False.
 
     Returns
     -------
-        : _description_
+        - `DataFrame`: dataframe that contains the root tweets.
     """
     if os.path.exists('data/root_tweets.csv') and not ignore:
         df_root_tweets = pd.read_csv('data/root_tweets.csv')
@@ -341,13 +346,19 @@ def load_root_tweets(db, tweets: pd.DataFrame = None,
     return df_root_tweets
 
 
-def load_tw_inter(db, ignore) -> pd.DataFrame:
+def load_tw_inter(db: DB, ignore: bool = False) -> pd.DataFrame:
     """
-    Get the tweet metrics to generate the tree
+    Gets the tweet metrics or interactions.
+
+    Arguments
+    ----------
+        - db (`DB`): database connection.
+        - ignore (`bool`, optional): flag to ignore the data in the data folder
+        and generate it from the database. Defaults to False.
 
     Returns
     -------
-        : _description_
+        - `DataFrame`: dataframe that contains the tweet metrics.
     """
     if 'tw_interactions.csv' not in os.listdir('data') or ignore:
         df_tw_interactions = db.get_tweets_metrics()
@@ -361,11 +372,13 @@ def load_tw_inter(db, ignore) -> pd.DataFrame:
     return df_tw_interactions
 
 
-def quotes(db):
-    """_summary_
+def quotes(db) -> list[int]:
+    """
+    Gets all the quotes from the database and casts the quoted tweet id to int.
 
-    Returns:
-        _type_: _description_
+    Returns
+    -------
+        - `list[int]`: list of quote ids.
     """
     qt = db.get_quotes()
     qt['quoted'] = qt['quoted'].astype(int)
@@ -374,16 +387,46 @@ def quotes(db):
 
 
 def get_path(tweet: pd.Series):
+    """
+    Gets the path that contains the tree file of the given tweet.
+
+    Arguments
+    ----------
+        - tweet (`Series`): tweet info to search the tree file path.
+
+    Returns
+    -------
+        - `strs`: path that contains the tree file.
+    """
     _file = f"{tweet['conversation_id']}.json"
-    for _dir in dirs:
+    for _dir in CONFIG.get('tree_dirs', ['data/tree']):
         if _file in os.listdir(_dir):
             print(_dir)
             return os.path.join(_dir, _file)
+
+    return ""
 
 
 def get_useful_roots(db: DB, ignore: bool = False,
                      relevants: bool = False) -> Tuple[pd.DataFrame,
                                                        pd.DataFrame]:
+    """
+    Gets the useful root tweets from the database.
+
+    Arguments
+    ----------
+        - db (`DB`): database connection.
+        - ignore (`bool`, optional): flag to ignore the data in the data folder
+        and generate it from the database. Defaults to False.
+        - relevants (`bool`, optional): flag to get only the relevant tweets,
+        it means, the tweets that have more than one tweet in the conversation
+        or the tweets that have at least one quote. Defaults to False.
+
+    Returns
+    -------
+        - `DataFrame`: all possible tweets to study.
+        - `DataFrame`: useful root tweets.
+    """
     os.makedirs('data', exist_ok=True)
     df_tweets = tweets(db, ignore)
     if 'useful_roots.csv' not in os.listdir('data') or ignore:
@@ -413,8 +456,25 @@ def get_useful_roots(db: DB, ignore: bool = False,
     return df_root_tweets, df_tweets
 
 
-def load_tree(db, tweet: pd.Series, df_tweets: pd.DataFrame,
+def load_tree(db: DB, tweet: pd.Series, df_tweets: pd.DataFrame,
               dir: str = 'tree') -> Tuple[dict, pd.DataFrame]:
+    """
+    Loads the tree info from a file if exists or generate it from the database.
+
+    Arguments
+    ----------
+        - db (`DB`): database connection.
+        - tweet (`Series`): tweet info to generate the tree.
+        - df_tweets (`DataFrame`): dataframe that contains all tweets data to
+        study.
+        - dir (`str`, optional): directory to save the tree if it is generated.
+        Defaults to 'tree'.
+
+    Returns
+    ----------
+        - `dict`: tree info of the conversation.
+        - `DataFrame`: dataframe that contains the tweets info.
+    """
     os.makedirs(f'data/{dir}', exist_ok=True)
     path = get_path(tweet)
     if not path:
@@ -431,20 +491,25 @@ def load_tree(db, tweet: pd.Series, df_tweets: pd.DataFrame,
     else:
         with open(path, 'r') as infile:
             tree = json.load(infile)
+
     return tree, df_tweets
-    # path = f'data/tree/{tweet["conversation_id"]}.json'
-    # if f'{tweet["conversation_id"]}.json' not in os.listdir('data/tree'):
-    #     tree, df_tweets = db.get_tree(df_tweets, tweet, True)
-    #     with open(path, 'w') as outfile:
-    #         print(f'Guardando árbol generado de conversación: {path}')
-    #         json.dump(tree, outfile, indent=4)
-    # else:
-    #     with open(path, 'r') as infile:
-    #         tree = json.load(infile)
-    # return tree
 
 
-def get_dates(db: DB, ignore: bool = False):
+def get_dates(db: DB, ignore: bool = False) -> pd.DataFrame:
+    """
+    Gets the tweet dates from the database.
+
+    Arguments
+    ----------
+        - db (`DB`): database connection.
+        - ignore (`bool`, optional): flag to ignore the data in the data folder
+        and generate it from the database. Defaults to False.
+
+    Returns
+    ----------
+        - `DataFrame`: tweet info with the dates.
+    """
+    os.makedirs('data', exist_ok=True)
     if 'tweets_date_detail.csv' not in os.listdir('data') or ignore:
         df_posts_user = db.get_tweet_dates_details()
         df_posts_user.to_csv('data/tweets_date_detail.csv', index=False)
@@ -455,8 +520,24 @@ def get_dates(db: DB, ignore: bool = False):
 
 
 def get_tweet_text(db: DB, tweets: pd.DataFrame = None, ignore: bool = False,
-                   clear: bool = False) -> pd.DataFrame:
+                   clean: bool = False) -> pd.DataFrame:
+    """
+    Gets the tweet text from the database for the given tweets.
 
+    Arguments
+    ----------
+        - db (`DB`): database connection.
+        - tweets (`DataFrame`, optional): dataframe that contains the tweets
+        to get the text. Defaults to None.
+        - ignore (`bool`, optional): flag to ignore the data in the data folder
+        and generate it from the database. Defaults to False.
+        - clean (`bool`, optional): flag to clean the tweet text. Defaults to
+        False.
+
+    Returns
+    ----------
+        - `DataFrame`: tweet info with the text.
+    """
     if 'tweet_text.pkl' not in os.listdir('data') or ignore:
         print('Getting tweet text')
         df_text = db.get_tweet_text()
@@ -464,10 +545,10 @@ def get_tweet_text(db: DB, tweets: pd.DataFrame = None, ignore: bool = False,
     else:
         df_text = pd.read_pickle('data/tweet_text.pkl')
 
-    if clear:
+    if clean:
         if 'text_temp.pkl' not in os.listdir('data') or ignore:
             df_text = df_text[df_text['lang'].isin(['es', 'und'])]
-            df_text = clear_tweets_text(df_text, db)
+            df_text = clean_tweets_text(df_text, db)
             df_text.to_pickle('data/text_temp.pkl')
         else:
             df_text = pd.read_pickle('data/text_temp.pkl')
@@ -476,31 +557,44 @@ def get_tweet_text(db: DB, tweets: pd.DataFrame = None, ignore: bool = False,
         if tweets is not None else df_text
 
 
-def clear_tweets_text(df_text: pd.DataFrame, db: DB) -> pd.DataFrame:
+def clean_tweets_text(df_text: pd.DataFrame, db: DB) -> pd.DataFrame:
     df_rtweet = db.get_retweets()
     df_text = df_text.loc[~df_text['id'].isin(df_rtweet['tweet_id'])]
 
     df_quotes = db.get_quotes()
     df_text['text'] = np.where(df_text['id'].isin(df_quotes['tweet_id']),
-                               df_text['text'].apply(lambda x: clear_quote(x)),
+                               df_text['text'].apply(lambda x: clean_quote(x)),
                                df_text['text'])
 
     df_replies = db.get_replies()
     df_text['text'] = np.where(df_text['id'].isin(df_replies['tweet_id']),
                                df_text['text'].apply(
-                                   lambda x: clear_replies(x)),
+                                   lambda x: clean_replies(x)),
                                df_text['text'])
 
     return df_text
 
 
-def save_plot(fig, name: str, dir: str = 'plots'):
+def save_plot(plt, name: str, dir: str = 'plots'):
     os.makedirs(f'{dir}', exist_ok=True)
-    fig.savefig(f'{dir}/{name}.png', bbox_inches='tight', dpi=350)
+    _file = f"{dir}{name}.png" if dir[-1] == '/' else f"{dir}/{name}.png"
+    plt.savefig(f'{_file}', bbox_inches='tight', dpi=350)
+    print(f'Plot saved in {_file}')
 
 
 def scatter_plot(df_tweets: pd.DataFrame, names: dict,
                  path: str = 'images/', name: str = 'scatter_plot'):
+    """
+    Plots a scatter matrix with the given data.
+
+    Arguments
+    ----------
+        - df_tweets (`DataFrame`): dataframe that contains the data to be
+        plotted.
+        - names (dict): column names to be plotted in the scatter matrix.
+        - path (str, optional): path to save the plot. Defaults to 'images/'.
+        - name (str, optional): file name. Defaults to 'scatter_plot'.
+    """
     tweets = df_tweets.drop(columns=['author_id'])
     tweets.rename(columns=names, inplace=True)
     axes = scatter_matrix(tweets, diagonal='kde', color='blue')
@@ -523,7 +617,14 @@ def scatter_plot(df_tweets: pd.DataFrame, names: dict,
     plt.savefig(f'{path}{name}.png', dpi=350)
 
 
-def show_or_save():
+def show_or_save() -> str:
+    """
+    Inquirer prompt to select if the plot must be shown, saved or both.
+
+    Returns
+    ----------
+        - `str`: selected option.
+    """
     title = 'Do you want to show, save the plot or both?'
     options = ['SHOW', 'SAVE', 'SHOW AND SAVE']
     response = inquirer.prompt([inquirer.List('option',

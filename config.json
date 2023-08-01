@@ -32,6 +32,9 @@
             "Anti G20"
         ],
         "NO PROTESTA": ["Spam", "No protesta"]
-    }
+    },
+    "tree_dirs": [
+        "data/tree/"
+    ]
 
 }
