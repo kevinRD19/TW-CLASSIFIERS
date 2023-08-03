@@ -15,8 +15,7 @@ sys.path.append(p_dir)
 from utils.DB import DB # noqa
 from utils.utils import (Radar, get_useful_roots, load_tree, # noqa
                          load_root_tweets, get_dates, # noqa
-                         CONFIG, show_or_save, # noqa
-                         save_plot) # noqa
+                         CONFIG, show_or_save) # noqa
 from utils.graph import TweetGrah # noqa
 
 db_uri = CONFIG['uri']
@@ -24,46 +23,70 @@ db_uri = CONFIG['uri']
 
 def get_non_calculated(root_tweets: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
     """
-    Gets the independent root tweets statics/info that has not been
+    Gets the independent root tweets statistics/info that has not been
     calculated yet
 
     Arguments
     ----------
-        - root_tweets (`DataFrame`): independent root tweets to study
+        - root_tweets (`DataFrame`): independent root tweets to study.
 
     Returns
     -------
-        - `DataFrame`: 
-        - `dict`: _description_
+        - `DataFrame`: root tweets that has not been calculated yet.
+        - `dict`: data with the tweets statistics/info.
     """
-    if 'graph_statics.csv' not in os.listdir('data'):
+    if 'graph_statistics.csv' not in os.listdir('data'):
         data = {
             'tweet_id': [], 'conversation_id': [], 'author_id': [],
             'start': [], 'end': [], 'max_depht': [], 'num_tweets': []
         }
         return root_tweets, data
     else:
-        df_graph_statics = pd.read_csv('data/graph_statics.csv')
+        df_graph_statistics = pd.read_csv('data/graph_statistics.csv')
         return root_tweets.loc[
             ~root_tweets['conversation_id'].
-            isin(df_graph_statics['conversation_id'])
-        ].copy().reset_index(drop=True), df_graph_statics.to_dict('list')
+            isin(df_graph_statistics['conversation_id'])
+        ].copy().reset_index(drop=True), df_graph_statistics.to_dict('list')
 
 
-def add_data(data: dict, root: pd.Series, graph: TweetGrah) -> None:
-    statics = graph.get_statics()
+def add_data(data: dict, root: pd.Series, graph: TweetGrah):
+    """
+    Adds the statistics/info of the root tweet to the data dict
+
+    Arguments
+    ----------
+        - data (`dict`): data with the tweets statistics/info.
+        - root (`Series`): tweet to add to the data.
+        - graph (`TweetGrah`): conversation graph of the root tweet.
+    """
+    statistics = graph.get_statistics()
     [
         data[field].append(root[field])
         for field in ['tweet_id', 'conversation_id', 'author_id']
     ]
     [
-        data[key].append(value) for key, value in statics.items()
+        data[key].append(value) for key, value in statistics.items()
     ]
 
 
-def get_user_statics(db, ignore):
-    if 'user_statics.csv' in os.listdir('data') and not ignore:
-        return pd.read_csv('data/user_statics.csv')
+def get_user_statistics(db: DB, ignore: bool = False) -> pd.DataFrame:
+    """
+    Gets the statistics of the users, or gets it if it has not been
+    calculated yet and saves it in the data folder.
+
+    Arguments
+    ----------
+        - db (`DB`): data base connection.
+        - ignore (`bool`): flag to ignore the data in the data folder
+        and generate it from the database.
+
+    Returns
+    -------
+        - `DataFrame`: statistics of users who are authors of any
+        independent root tweets.
+    """
+    if 'user_statistics.csv' in os.listdir('data') and not ignore:
+        return pd.read_csv('data/user_statistics.csv')
 
     df_root_tweets, df_tweets = get_useful_roots(db, args.ignore, True)
 
@@ -76,10 +99,10 @@ def get_user_statics(db, ignore):
         graph = TweetGrah(tree, rt=False, like=False)
         add_data(data, root, graph)
 
-    df_graph_statics = pd.DataFrame(data)
-    df_graph_statics.to_csv('data/graph_statics.csv', index=False)
+    df_graph_statistics = pd.DataFrame(data)
+    df_graph_statistics.to_csv('data/graph_statistics.csv', index=False)
 
-    df_graph_statics.drop(columns=['tweet_id', 'author_id'], inplace=True)
+    df_graph_statistics.drop(columns=['tweet_id', 'author_id'], inplace=True)
     df_root_tweets = load_root_tweets(db, ignore=args.ignore)
     df_root_tweets = df_root_tweets.loc[
         df_root_tweets['lang'] == 'es'
@@ -88,7 +111,7 @@ def get_user_statics(db, ignore):
     df_tweet_date = get_dates(db, ignore=args.ignore)
     df_root_tweets = df_root_tweets.merge(df_tweet_date, how='left',
                                           on='id')
-    df_root_tweets = df_root_tweets.merge(df_graph_statics, how='outer',
+    df_root_tweets = df_root_tweets.merge(df_graph_statistics, how='outer',
                                           on='conversation_id')
     df_root_tweets.loc[
         df_root_tweets.isna().any(axis=1), ['max_depht', 'num_tweets']
@@ -114,7 +137,8 @@ def get_user_statics(db, ignore):
     df_root_tweets = df_root_tweets.merge(durations, how='right',
                                           on='author_id')
 
-    df_root_tweets.to_csv('data/user_statics.csv', index=False)
+    df_root_tweets.to_csv('data/user_statistics.csv', index=False)
+    df_root_tweets = pd.read_csv('data/user_statistics.csv')
 
     return df_root_tweets
 
@@ -148,16 +172,12 @@ def radar_chart(df_tweets, sortby=['num_tweets']):
     fig.subplots_adjust(top=1.1, bottom=-0.7)
     fig.set_size_inches(32, 18)
 
-    mode = show_or_save()
-    if mode == 'SAVE' or mode == 'SHOW AND SAVE':
-        path = 'images/users/popular/'
-        name = reduce(lambda x, y: ''.join(x.split('_')).capitalize() +
-                      ''.join(y.split('_')).capitalize(), sortby) \
-            if len(sortby) > 1 else \
-            ''.join(sortby[0].split('_')).capitalize()
-        save_plot(plt, name, path)
-    if mode == 'SHOW' or mode == 'SHOW AND SAVE':
-        plt.show()
+    path = 'images/users/popular/'
+    name = reduce(lambda x, y: ''.join(x.split('_')).capitalize() +
+                  ''.join(y.split('_')).capitalize(), sortby) \
+        if len(sortby) > 1 else \
+        ''.join(sortby[0].split('_')).capitalize()
+    show_or_save(plt, path, name)
 
 
 if __name__ == '__main__':
@@ -169,9 +189,9 @@ if __name__ == '__main__':
                         ' and generate it from the database')
     args = parser.parse_args()
 
-    # Gets the statics of the users and change the duration mean to days
+    # Gets the statistics of the users and change the duration mean to days
     db = DB(db_uri)
-    df_root_tweets = get_user_statics(db, args.ignore)
+    df_root_tweets = get_user_statistics(db, args.ignore)
     df_root_tweets['duration'] = df_root_tweets['duration']. \
         astype('timedelta64[D]').dt.days
 

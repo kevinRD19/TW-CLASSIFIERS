@@ -1,5 +1,4 @@
 import argparse
-from datetime import datetime
 import os
 import sys
 from matplotlib.ticker import MultipleLocator
@@ -19,13 +18,12 @@ from utils.DB import DB # noqa
 db_uri = CONFIG['uri']
 
 
-def lenght_static():
+def lenght_statistic():
     if 'tweet_text.pkl' not in os.listdir('data') or args.ignore:
         df_tweet = db.get_tweet_text()
         df_tweet.to_pickle('data/tweet_text.pkl')
     else:
         df_tweet = pd.read_pickle('data/tweet_text.pkl')
-        print(df_tweet)
 
     df_rtweet = db.get_retweets()
     df_tweet = df_tweet.loc[~df_tweet['id'].isin(df_rtweet['tweet_id'])]
@@ -43,17 +41,16 @@ def lenght_static():
                                 df_tweet['text'])
 
     df_tweet['Number of characters'] = df_tweet['text'].apply(lambda x: len(x))
-    print(df_tweet)
-    df_statics = df_tweet.groupby(by=['author_id'])['Number of characters'] \
-                         .mean() \
-                         .apply(lambda x: round(x, 0)).replace(np.nan, 0) \
-                         .reset_index(name='Mean')
+    df_statistics = df_tweet.groupby(by=['author_id'])['Number of characters']\
+                            .mean() \
+                            .apply(lambda x: round(x, 0)).replace(np.nan, 0) \
+                            .reset_index(name='Mean')
 
-    bins = int(round(df_statics['Mean'].max(), -1) / 10)
-    df_statics.hist(column='Mean', bins=bins*2, alpha=0.8, figsize=(20, 10),
-                    rwidth=0.75, grid=False, density=True, zorder=10)
-    df_statics['Mean'].plot.kde(figsize=(20, 10), grid=False, zorder=15,
-                                alpha=0.9, linewidth=3)
+    bins = int(round(df_statistics['Mean'].max(), -1) / 10)
+    df_statistics.hist(column='Mean', bins=bins*2, alpha=0.8, figsize=(20, 10),
+                       rwidth=0.75, grid=False, density=True, zorder=10)
+    df_statistics['Mean'].plot.kde(figsize=(20, 10), grid=False, zorder=15,
+                                   alpha=0.9, linewidth=3)
 
     axes = plt.gca()
     axes.set_xlim([0, (bins)*10])
@@ -62,16 +59,16 @@ def lenght_static():
     plt.xticks(fontsize=18)
     plt.yticks(fontsize=18)
 
-    axes.axvline(df_statics['Mean'].quantile(0.25), color='red', alpha=0.8,
+    axes.axvline(df_statistics['Mean'].quantile(0.25), color='red', alpha=0.8,
                  linestyle="dashed", zorder=5)
-    axes.axvline(df_statics['Mean'].quantile(0.50), color='red', alpha=0.8,
+    axes.axvline(df_statistics['Mean'].quantile(0.50), color='red', alpha=0.8,
                  linestyle="dashed", zorder=5)
-    axes.axvline(df_statics['Mean'].quantile(0.75), color='red', alpha=0.8,
+    axes.axvline(df_statistics['Mean'].quantile(0.75), color='red', alpha=0.8,
                  linestyle="dashed", zorder=5)
 
-    max_ = int(df_statics['Mean'].max())
-    min_ = int(df_statics['Mean'].min())
-    mean_ = int(df_statics['Mean'].mean())
+    max_ = int(df_statistics['Mean'].max())
+    min_ = int(df_statistics['Mean'].min())
+    mean_ = int(df_statistics['Mean'].mean())
     axes.axvline(min_, color='black', alpha=0.8,
                  linestyle="dashed", zorder=5, linewidth=3)
     axes.text(min_, ymax, f"MIN: {min_}", size=16, alpha=1,
@@ -106,31 +103,29 @@ def lenght_static():
     plt.xlabel('')
     plt.ylabel('')
 
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs('images/len_stats', exist_ok=True)
-    plt.savefig(f'images/len_stats/{date}.png', dpi=300)
-    plt.show()
+    path = 'images/len_stats'
+    show_or_save(plt, path)
 
 
-def hashtag_usage_static():
-    if 'ht_statics.csv' not in os.listdir('data') or args.ignore:
-        df_statics = db.hashtag_usage_statics()
-        df_statics.to_csv('data/ht_statics.csv', index=False)
+def hashtag_usage_statistic():
+    if 'ht_statistics.csv' not in os.listdir('data') or args.ignore:
+        df_statistics = db.hashtag_usage_statistics()
+        df_statistics.to_csv('data/ht_statistics.csv', index=False)
     else:
-        df_statics = pd.read_csv('data/ht_statics.csv')
+        df_statistics = pd.read_csv('data/ht_statistics.csv')
 
-    df_statics = df_statics.groupby(by=['author_id'])['used_hashtags'].mean()\
-                           .apply(lambda x: round(x, 0)).replace(np.nan, 0)\
-                           .reset_index(name='Mean')
+    df_statistics = df_statistics.groupby(by=['author_id'])['used_hashtags']\
+                                 .mean().apply(lambda x: round(x, 0))\
+                                 .replace(np.nan, 0).reset_index(name='Mean')
     df_users = db.get_users()
-    df_statics = df_users.merge(df_statics, how='left', on='author_id')\
-                         .replace(np.nan, 0)
+    df_statistics = df_users.merge(df_statistics, how='left', on='author_id')\
+                            .replace(np.nan, 0)
 
-    xmax = int(round(df_statics['Mean'].max(), 0))
-    df_statics.hist(column='Mean', bins=xmax+1, alpha=0.8, figsize=(20, 10),
-                    grid=False, density=True, zorder=10, rwidth=0.85)
-    df_statics['Mean'].plot.kde(grid=False, zorder=15,
-                                alpha=0.9, linewidth=3)
+    xmax = int(round(df_statistics['Mean'].max(), 0))
+    df_statistics.hist(column='Mean', bins=xmax+1, alpha=0.8, figsize=(20, 10),
+                       grid=False, density=True, zorder=10, rwidth=0.85)
+    df_statistics['Mean'].plot.kde(grid=False, zorder=15,
+                                   alpha=0.9, linewidth=3)
 
     axes = plt.gca()
     axes.set_xlim([0, xmax])
@@ -139,16 +134,16 @@ def hashtag_usage_static():
     plt.xticks(fontsize=18)
     plt.yticks(fontsize=18)
 
-    axes.axvline(df_statics['Mean'].quantile(0.25), color='red', alpha=0.8,
+    axes.axvline(df_statistics['Mean'].quantile(0.25), color='red', alpha=0.8,
                  linestyle="dashed", zorder=5, linewidth=3)
-    axes.axvline(df_statics['Mean'].quantile(0.50), color='red', alpha=0.8,
+    axes.axvline(df_statistics['Mean'].quantile(0.50), color='red', alpha=0.8,
                  linestyle="dashed", zorder=5, linewidth=3)
-    axes.axvline(df_statics['Mean'].quantile(0.75), color='red', alpha=0.8,
+    axes.axvline(df_statistics['Mean'].quantile(0.75), color='red', alpha=0.8,
                  linestyle="dashed", zorder=5, linewidth=3)
 
-    max_ = int(df_statics['Mean'].max())
-    min_ = int(df_statics['Mean'].min())
-    mean_ = int(df_statics['Mean'].mean())
+    max_ = int(df_statistics['Mean'].max())
+    min_ = int(df_statistics['Mean'].min())
+    mean_ = int(df_statistics['Mean'].mean())
     axes.axvline(min_, color='black', alpha=0.8,
                  linestyle="dashed", zorder=5, linewidth=3)
     axes.text(min_, ymax, f"MIN: {min_}", size=16, alpha=1,
@@ -183,14 +178,8 @@ def hashtag_usage_static():
     plt.xlabel('')
     plt.ylabel('')
 
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs('images/hashtag_stats', exist_ok=True)
-    plt.savefig(f'images/hashtag_stats/{date}.png', dpi=300)
-    plt.show()
-
-
-def url_usage_static():
-    pass
+    path = 'images/hashtag_stats'
+    show_or_save(plt, path)
 
 
 if __name__ == '__main__':
@@ -204,7 +193,7 @@ if __name__ == '__main__':
     os.makedirs('data', exist_ok=True)
     db = DB(db_uri)
 
-    lenght_static()
-    # hashtag_usage_static()
+    lenght_statistic()
+    hashtag_usage_statistic()
 
     db.close_connection()

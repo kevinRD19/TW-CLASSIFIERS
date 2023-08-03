@@ -754,7 +754,7 @@ class DB:
 
         return tweets
 
-    def hashtag_usage_statics(self) -> DataFrame:
+    def hashtag_usage_statistics(self) -> DataFrame:
         """
         Gets the number of tweets that use each hashtag.
 
@@ -771,9 +771,9 @@ class DB:
         query_ = select(tw.c.author_id, func.count().label('used_hashtags'))\
             .select_from(join_).group_by(tw.c.author_id, tw.c.id)\
             .order_by(text('used_hashtags DESC'))
-        statics = self.db_conn.execute(query_).fetchall()
+        statistics = self.db_conn.execute(query_).fetchall()
 
-        return pd.DataFrame(statics).reset_index(drop=True)
+        return pd.DataFrame(statistics).reset_index(drop=True)
 
     def get_users_info(self, users: List[int],
                        columns: List[str] = []) -> DataFrame:

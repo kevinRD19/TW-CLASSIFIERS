@@ -7,7 +7,7 @@ import pandas as pd
 from utils.node import Like, Quote, Reply, Retweet, Tweet
 from utils.DB import DB
 from utils.utils import (select_emotion_classifier, select_layout,
-                         CONFIG, show_or_save, save_plot)
+                         CONFIG, show_or_save)
 from nrclex import NRCLex
 from random import sample
 from enum import Enum
@@ -232,13 +232,9 @@ class TweetGrah(nx.DiGraph):
         fig.set_size_inches(32, 18)
         plt.subplots_adjust(left=-0.07, right=1.0, top=1.0, bottom=0.0)
 
-        mode = show_or_save()
-        if mode == 'SAVE' or mode == 'SHOW AND SAVE':
-            path = 'images/tree/interactions/'
-            name = f'{self.root.id}{layout.__name__.split("_")[0]}'
-            save_plot(plt, name, path)
-        if mode == 'SHOW' or mode == 'SHOW AND SAVE':
-            plt.show()
+        path = 'images/tree/interactions/'
+        name = f'{self.root.id}{layout.__name__.split("_")[0]}'
+        show_or_save(plt, path, name)
 
     def show_emotion(self):
         """
@@ -268,13 +264,9 @@ class TweetGrah(nx.DiGraph):
         fig.set_size_inches(32, 18)
         plt.subplots_adjust(left=-0.07, right=1.0, top=1.0, bottom=0.0)
 
-        mode = show_or_save()
-        if mode == 'SAVE' or mode == 'SHOW AND SAVE':
-            path = 'images/tree/tone/'
-            name = f'{self.root.id}{str(_type).split(".")[-1]}'
-            save_plot(plt, name, path)
-        if mode == 'SHOW' or mode == 'SHOW AND SAVE':
-            plt.show()
+        path = 'images/tree/tone/'
+        name = f'{self.root.id}{str(_type).split(".")[-1]}'
+        show_or_save(plt, path, name)
 
     def __bipolar_clasifier(self, attributes: dict, classifier):
         """
@@ -333,35 +325,35 @@ class TweetGrah(nx.DiGraph):
             attributes['size'].append(300 if node.emotion[0] == 'neutral'
                                       else 1000)
 
-    def get_statics(self) -> dict:
+    def get_statistics(self) -> dict:
         """
-        Shows some statics of the conversation graph (start, end,
+        Shows some statistics of the conversation graph (start, end,
         maximum depht and number of tweets).
 
         Returns
         -------
-            - `Dict`: Dictionary with some statics of the graph.
+            - `Dict`: Dictionary with some statistics of the graph.
         """
-        print('Graph statics\n' + '-'*35)
+        print('Graph statistics\n' + '-'*35)
 
-        statics = {}
+        statistics = {}
         start = self.root.created_at
-        statics['start'] = start
+        statistics['start'] = start
         print(f'   - Start: {start}')
 
         end = max(self.get_leaf_nodes())
-        statics['end'] = end
+        statistics['end'] = end
         print(f'   - End: {end}')
 
         max_depht = len(self.get_max_branch_nodes())
-        statics['max_depht'] = max_depht
+        statistics['max_depht'] = max_depht
         print(f'   - Maximum Depht: {max_depht}')
 
         num_nodes = len(self.nodes)
-        statics['num_tweets'] = num_nodes
+        statistics['num_tweets'] = num_nodes
         print(f'   - Number of Tweets: {num_nodes}')
 
-        return statics
+        return statistics
 
     def get_emotion_stats(self) -> pd.DataFrame:
         """

@@ -80,6 +80,6 @@ if __name__ == '__main__':
     subgraph.show(args.verbose)
 
     # Shows some statistics of the deepest branch
-    df_statics = graph.get_statics()
+    df_statistics = graph.get_statistics()
 
     db.close_connection()

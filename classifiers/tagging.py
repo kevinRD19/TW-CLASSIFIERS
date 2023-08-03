@@ -17,6 +17,7 @@ labels = CONFIG['protest_types']
 with open('data/labeled_protests.json', 'r') as f:
     tweets = json.load(f)
 
+# Counts the number of labeled tweets for each subtype
 counts = {}
 for tweet in tweets:
     if 'subtype' in tweet:

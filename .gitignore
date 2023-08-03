@@ -3,7 +3,7 @@
 data/
 images/
 images/*.pdf
-tree/graph_statics.py
+tree/graph_statistics.py
 classifiers/topic_classifier.py
 classifiers/topic_classifier.ipynb
 config.json

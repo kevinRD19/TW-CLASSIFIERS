@@ -1,7 +1,7 @@
 import argparse
-from datetime import datetime
 import os
 import sys
+import inquirer
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -30,7 +30,7 @@ def bar_comparation(metric: str):
                                .reset_index(drop=True)
 
     category_names = ['Retweets', 'Replies', 'Quotes', 'Likes']
-    labels = df_top['tweet_id'].astype(str) + '\n(' + \
+    labels = 'id:' + df_top['tweet_id'].astype(str) + '\n(' + \
         df_top['interaction_count'].astype(str) + ')'
 
     max_iter = df_top['interaction_count'].max()
@@ -66,21 +66,19 @@ def bar_comparation(metric: str):
         if i != 0:
             spine.set_visible(False)
     plt.subplots_adjust(left=0.05, right=0.99, top=0.99, bottom=0.03)
-
     fig.set_size_inches(32, 18)
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs(f'images/top_posts/{metric}', exist_ok=True)
-    plt.savefig(f'images/top_posts/{metric}/{date}.png', dpi=350)
+
+    show_or_save(plt, f'images/top_posts/{metric}')
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Plot a pie chart and ' +
-                                     'circles plots with the proportions ' +
-                                     'of the campaigns according to the ' +
-                                     'number of uses')
+    parser = argparse.ArgumentParser(description='Plot a stacked bar plot ' +
+                                     'with the different interactions of ' +
+                                     'the top 10 posts with more ' +
+                                     'interactions.')
     parser.add_argument('-i', '--ignore', action='store_true', default=False,
                         help='Flag to ignore the data in the data folder' +
-                        ' and generate it from the database')
+                        ' and generate it from the database.')
     args = parser.parse_args()
 
     db = DB(db_uri)
@@ -91,6 +89,12 @@ if __name__ == '__main__':
     else:
         df_tw_interactions = pd.read_csv('data/tw_interactions.csv')
 
-    bar_comparation('retweet_count')
+    # Selection of the metric to compare
+    title = 'Select the metric to compare'
+    options = ['RETWEET', 'REPLY', 'QUOTE', 'LIKE']
+    response = inquirer.prompt([inquirer.List('metric',
+                                              message=title,
+                                              choices=options)])
+    bar_comparation(response['metric'].lower() + '_count')
 
     db.close_connection()

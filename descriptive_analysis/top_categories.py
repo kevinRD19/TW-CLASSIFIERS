@@ -1,5 +1,4 @@
 import argparse
-from datetime import datetime
 import os
 import sys
 import numpy as np
@@ -68,8 +67,4 @@ if __name__ == '__main__':
     fig = plt.gcf()
     fig.set_size_inches(32, 18)
 
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs('images/top_categories/', exist_ok=True)
-    plt.savefig(f'images/top_categories/{date}.png', dpi=350)
-
-    plt.show()
+    show_or_save(plt, 'images/top_categories')

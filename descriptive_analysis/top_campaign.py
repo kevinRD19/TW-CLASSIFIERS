@@ -1,5 +1,4 @@
 import argparse
-from datetime import datetime
 import circlify
 import os
 import sys
@@ -56,61 +55,9 @@ def bubbles_graph():
     plt.yticks([])
 
     fig.set_size_inches(32, 18)
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs('images/campaign/bubble', exist_ok=True)
-    plt.savefig(f'images/campaign/bubble/{date}.png', dpi=350)
 
-
-def pie_plot():
-    fig, axes = plt.subplots()
-    pie_plot = df_count_campaign.plot.pie(y='num_uses', ax=axes,
-                                          colors=pal_,
-                                          autopct='%1.1f%%', startangle=90,
-                                          pctdistance=0.5,
-                                          labeldistance=1.1,
-                                          wedgeprops={'linewidth': 2.0,
-                                                      'edgecolor': 'white'},
-                                          textprops={
-                                              'size': '13',
-                                              'weight': 'bold',
-                                              'ha': 'center',
-                                              'va': 'center',
-                                              'bbox': dict(fc='white',
-                                                           ec='black',
-                                                           boxstyle='round,' +
-                                                           'pad=0.2')
-                                              },
-                                          labels=None)
-    plt.legend(df_count_campaign['campaign'] + '  (' +
-               df_count_campaign['num_uses'].map(
-               lambda x: format(x, ',').replace(',', ' ')) + ')',
-               loc='center left',
-               bbox_to_anchor=(1.0, 0.5), fontsize=12,
-               title='Campañas',
-               shadow=True,
-               draggable=True,
-               labelspacing=1.5,
-               borderpad=1.5,
-               title_fontproperties={'size': 14,
-                                     'weight': 'bold',
-                                     }
-               )
-    perc = 0.47/(num_camp//2)
-    p = 0.5
-    for i, text in enumerate(pie_plot.texts):
-        if i % 2 and i//2 > num_camp//2:
-            p += perc
-            text.set_position((text.get_position()[0]*p/0.5,
-                               text.get_position()[1]*p/0.5))
-    axes.xaxis.set_tick_params(labelsize=8)
-    axes.set_ylabel('')
-    plt.subplots_adjust(left=0.01, right=0.99, top=1.12, bottom=-0.12)
-
-    fig.set_size_inches(32, 18)
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs('images/campaign/pie', exist_ok=True)
-    plt.savefig(f'images/campaign/pie/{date}.png', dpi=350)
-    # plt.show()
+    path = 'images/campaign/bubble'
+    show_or_save(plt, path)
 
 
 if __name__ == '__main__':
@@ -137,6 +84,5 @@ if __name__ == '__main__':
                                   n_colors=num_camp))
 
     bubbles_graph()
-    # pie_plot()
 
     plt.show()

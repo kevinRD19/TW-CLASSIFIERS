@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from datetime import datetime
 from matplotlib.ticker import MultipleLocator
 
 c_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,16 +12,19 @@ p_dir = os.path.dirname(c_dir)
 sys.path.append(p_dir)
 
 from utils.DB import DB # noqa
-from utils.utils import CONFIG # noqa
+from utils.utils import CONFIG, show_or_save # noqa
 
 
 db_uri = CONFIG['uri']
 
 
-def cronology_plot():
+def temporal_evolution():
+    """
+    Generates a temporal plot of the top n hashtags.
+    """
     if 'hashtag_temp.csv' not in os.listdir('data') or args.ignore:
         tweets = db.get_tweets_by_hashtag(
-            df_count_hashtags['hashtag'][:args.cronology]
+            df_count_hashtags['hashtag'][:args.temporal]
         )
         tweets['created_at'] = list(map(lambda x:
                                     x.replace(hour=0, minute=0,
@@ -41,7 +43,7 @@ def cronology_plot():
     dates = list(map(lambda x: x.replace(hour=0, minute=0, second=0, day=1),
                      dates))
     dates = pd.to_datetime(dates)
-    for hashtag in tweets['hashtag'].unique()[:args.cronology]:
+    for hashtag in tweets['hashtag'].unique()[:args.temporal]:
         df_crono = pd.DataFrame({'hashtag': hashtag, 'created_at': dates})
         df_crono = df_crono.merge(tweets[tweets['hashtag'] == hashtag],
                                   how='left', on=['hashtag',
@@ -86,44 +88,19 @@ def cronology_plot():
     fig = plt.gcf()
     fig.set_size_inches(32, 18)
 
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs('images/top_hashtag/time_evolution', exist_ok=True)
-    plt.savefig(f'images/top_hashtag/time_evolution/{date}.png', dpi=350)
-    # plt.show()
+    show_or_save(plt, 'images/top_hashtag/time_evolution')
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Genera un gráfico de ' +
-                                     'con las proporciones de las ' +
-                                     'campañas según el número de usos')
-    parser.add_argument('-n', '--numhashtags', type=int, default=100,
-                        help='Indicates the top number of hashtags to show')
-    parser.add_argument('-c', '--cronology', type=int,
-                        help='Show the evolution of the top n hashtags use' +
-                        'in time')
-    parser.add_argument('-i', '--ignore', action='store_true', default=False,
-                        help='Flag to ignore the data in the data folder' +
-                        ' and generate it from the database')
-    args = parser.parse_args()
-    os.makedirs('data', exist_ok=True)
-    db = DB(db_uri)
-    if 'count_hashtag_use.csv' not in os.listdir('data') or args.ignore:
-        df_count_hashtags = db.get_most_hashtags()
-        df_count_hashtags.to_csv('data/count_hashtag_use.csv', index=False)
-    else:
-        df_count_hashtags = pd.read_csv('data/count_hashtag_use.csv')
-    df_top_count = df_count_hashtags[:args.numhashtags]
-
-    if args.cronology:
-        cronology_plot()
-
-    plt.rcParams["font.family"] = "serif"
+def top_hashtags():
+    """
+    Generates a bar plot with the top n hashtags according to the number
+    of uses.
+    """
     fig, axes = plt.subplots()
     width = 0.92 if args.numhashtags <= 50 else 0.8
-    bar_plot = df_top_count.plot.bar(x='hashtag', y='num_uses',
-                                     ax=axes, legend=False,
-                                     xlabel='', ylabel='',
-                                     width=width)
+    df_top_count.plot.bar(x='hashtag', y='num_uses', ax=axes,
+                          legend=False, xlabel='', ylabel='',
+                          width=width)
     if args.numhashtags <= 50:
         label_type = 'center'
         color = 'white'
@@ -154,9 +131,35 @@ if __name__ == '__main__':
     fig = plt.gcf()
     fig.set_size_inches(32, 18)
 
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs('images/top_hashtag/total_uses', exist_ok=True)
-    plt.savefig(f'images/top_hashtag/total_uses/{date}.png', dpi=350)
+    show_or_save(plt, 'images/top_hashtag/total_uses')
 
-    plt.show()
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Generates a bar plot ' +
+                                     'with the top hashtags according to' +
+                                     'the number of uses. Additionally, ' +
+                                     'shows the temporal evolution of the' +
+                                     'top n hashtags.')
+    parser.add_argument('-n', '--numhashtags', type=int, default=100,
+                        help='Indicates the top number of hashtags to show')
+    parser.add_argument('-t', '--temporal', type=int, default=10,
+                        help='Indicates the top number of hashtags to show' +
+                        ' in the temporal plot')
+    parser.add_argument('-i', '--ignore', action='store_true', default=False,
+                        help='Flag to ignore the data in the data folder' +
+                        ' and generate it from the database')
+    args = parser.parse_args()
+
+    db = DB(db_uri)
+    os.makedirs('data', exist_ok=True)
+    if 'count_hashtag_use.csv' not in os.listdir('data') or args.ignore:
+        df_count_hashtags = db.get_most_hashtags()
+        df_count_hashtags.to_csv('data/count_hashtag_use.csv', index=False)
+    else:
+        df_count_hashtags = pd.read_csv('data/count_hashtag_use.csv')
+    df_top_count = df_count_hashtags[:args.numhashtags]
+
+    top_hashtags()
+    temporal_evolution()
+
     db.close_connection()

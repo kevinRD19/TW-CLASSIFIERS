@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from datetime import datetime
 from matplotlib.ticker import MultipleLocator
 
 c_dir = os.path.dirname(os.path.abspath(__file__))
@@ -18,7 +17,10 @@ from utils.DB import DB # noqa
 db_uri = CONFIG['uri']
 
 
-def top_plot():
+def top_mentions():
+    """
+    Generates a bar plot of the top n mentioned names.
+    """
     fig, axes = plt.subplots()
     df_top_count.plot.bar(x='name', y='num_uses',
                           ax=axes, legend=False,
@@ -38,12 +40,13 @@ def top_plot():
     plt.subplots_adjust(left=0.05, right=0.99, top=0.96, bottom=0.17)
     fig.set_size_inches(32, 18)
 
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs('images/mentions/top', exist_ok=True)
-    plt.savefig(f'images/mentions/top/{date}.png', dpi=350)
+    show_or_save(plt, 'images/mentions/top')
 
 
 def temporal_evolution():
+    """
+    Generates a temporal evolution plot of the top n mentioned names.
+    """
     if 'name_temp.csv' not in os.listdir('data') or args.ignore:
         tweets = db.get_tweets_by_mention(
             df_top_count['name'][:args.temporal]
@@ -110,13 +113,10 @@ def temporal_evolution():
     fig = plt.gcf()
     fig.set_size_inches(32, 18)
 
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs('images/mentions/time_evolution', exist_ok=True)
-    plt.savefig(f'images/mentions/time_evolution/{date}.png', dpi=350)
+    show_or_save(plt, 'images/mentions/time_evolution')
 
 
 if __name__ == '__main__':
-    db = DB(db_uri)
 
     parser = argparse.ArgumentParser(description='Genera un gráfico de ' +
                                      'con las proporciones de las ' +
@@ -131,18 +131,17 @@ if __name__ == '__main__':
                         help='Flag to ignore the data in the data folder' +
                         ' and generate it from the database')
     args = parser.parse_args()
+
+    db = DB(db_uri)
     os.makedirs('data', exist_ok=True)
     if 'count_quoted_names.csv' not in os.listdir('data') or args.ignore:
         df_count_name = db.get_most_person()
         df_count_name.to_csv('data/count_quoted_names.csv', index=False)
     else:
         df_count_name = pd.read_csv('data/count_quoted_names.csv')
-
     df_top_count = df_count_name[:args.numnames]
-    plt.rcParams["font.family"] = "sans-serif"
 
+    top_mentions()
     temporal_evolution()
-    top_plot()
 
-    if db:
-        db.close_connection()
+    db.close_connection()

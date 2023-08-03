@@ -1,4 +1,5 @@
 # from functools import reduce
+from datetime import datetime
 import json
 import os
 import re
@@ -575,9 +576,22 @@ def clean_tweets_text(df_text: pd.DataFrame, db: DB) -> pd.DataFrame:
     return df_text
 
 
-def save_plot(plt, name: str, dir: str = 'plots'):
-    os.makedirs(f'{dir}', exist_ok=True)
-    _file = f"{dir}{name}.png" if dir[-1] == '/' else f"{dir}/{name}.png"
+def save_plot(plt, path: str = 'images', name: str = ''):
+    """
+    Saves the plot in the given path.
+
+    Arguments
+    ----------
+        - plt : plot to be saved.
+        - path (`str`, optional): path to save the plot. Defaults to 'images'.
+        - name (str): name of the file. If it is empty, the name will be the
+        date and time in format YYYYMMDD_HHMMSS.
+    """
+    os.makedirs(f'{path}', exist_ok=True)
+    if not name:
+        name = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    _file = f"{path}{name}.png" if path[-1] == '/' else f"{path}/{name}.png"
     plt.savefig(f'{_file}', bbox_inches='tight', dpi=350)
     print(f'Plot saved in {_file}')
 
@@ -617,17 +631,24 @@ def scatter_plot(df_tweets: pd.DataFrame, names: dict,
     plt.savefig(f'{path}{name}.png', dpi=350)
 
 
-def show_or_save() -> str:
+def show_or_save(plt, path: str = 'images/', name: str = '') -> str:
     """
-    Inquirer prompt to select if the plot must be shown, saved or both.
+    Inquirer prompt to select the mode to show or save the plot.
 
-    Returns
+    Arguments
     ----------
-        - `str`: selected option.
+        - plt: plot to be shown or saved.
+        - path (`str`, optional): path to save the plot. Defaults to 'images/'.
+        - name (`str`, optional): file name. Defaults to ''.
     """
     title = 'Do you want to show, save the plot or both?'
     options = ['SHOW', 'SAVE', 'SHOW AND SAVE']
     response = inquirer.prompt([inquirer.List('option',
                                               message=title,
                                               choices=options)])
-    return response['option']
+    mode = response['option']
+
+    if mode == 'SAVE' or mode == 'SHOW AND SAVE':
+        save_plot(plt, path, name)
+    if mode == 'SHOW' or mode == 'SHOW AND SAVE':
+        plt.show()

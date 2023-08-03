@@ -1,5 +1,4 @@
 import argparse
-from datetime import datetime
 import os
 import sys
 import pandas as pd
@@ -10,13 +9,17 @@ p_dir = os.path.dirname(c_dir)
 sys.path.append(p_dir)
 
 from utils.DB import DB # noqa
-from utils.utils import CONFIG # noqa
+from utils.utils import (CONFIG, show_or_save) # noqa
 
 
 db_uri = CONFIG['uri']
 
 
 def pie_plot():
+    """
+    Generates a pie chart with the proportions of the sources according to the
+    number of uses
+    """
     fig, axes = plt.subplots()
     colors = ['#A4C639', '#A3AAAE', '#1DA1F2', 'red', 'purple', 'black']
     df_5sources = df_sources.head(5).copy()
@@ -65,9 +68,9 @@ def pie_plot():
     plt.subplots_adjust(left=0.01, right=0.99, top=1.12, bottom=-0.12)
 
     fig.set_size_inches(32, 18)
-    date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.makedirs('images/source', exist_ok=True)
-    plt.savefig(f'images/source/{date}.png', dpi=350)
+
+    path = 'images/source'
+    show_or_save(plt, path)
 
 
 if __name__ == '__main__':

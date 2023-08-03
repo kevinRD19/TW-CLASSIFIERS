@@ -1,5 +1,4 @@
 import argparse
-from datetime import datetime
 import os
 import sys
 import numpy as np
@@ -12,7 +11,7 @@ p_dir = os.path.dirname(c_dir)
 sys.path.append(p_dir)
 
 from utils.utils import (get_dates, CONFIG, # noqa
-                         show_or_save, save_plot) # noqa
+                         show_or_save) # noqa
 from utils.DB import DB # noqa
 
 
@@ -71,13 +70,8 @@ def monthly_plot():
     fig = plt.gcf()
     fig.set_size_inches(32, 18)
 
-    mode = show_or_save()
-    if mode == 'SAVE' or mode == 'SHOW AND SAVE':
-        path = 'images/posts_by_year/'
-        name = datetime.now().strftime("%Y%m%d_%H%M%S")
-        save_plot(plt, name, path)
-    if mode == 'SHOW' or mode == 'SHOW AND SAVE':
-        plt.show()
+    path = 'images/posts_by_year/'
+    show_or_save(plt, path)
 
 
 def time_plot():
@@ -150,13 +144,8 @@ def stacked_time_plot():
     fig.set_size_inches(32, 18)
     plt.subplots_adjust(left=0.06, right=1.0, top=0.97, bottom=0.05)
 
-    mode = show_or_save()
-    if mode == 'SAVE' or mode == 'SHOW AND SAVE':
-        path = 'images/time_preferences'
-        name = datetime.now().strftime("%Y%m%d_%H%M%S")
-        save_plot(plt, name, path)
-    if mode == 'SHOW' or mode == 'SHOW AND SAVE':
-        plt.show()
+    path = 'images/time_preferences'
+    show_or_save(plt, path)
 
 
 if __name__ == '__main__':
