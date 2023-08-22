@@ -1,8 +1,7 @@
 .vscode
 .venv
-data/
+data2/
 images/
-images/*.pdf
 tree/graph_statistics.py
 classifiers/topic_classifier.py
 classifiers/topic_classifier.ipynb

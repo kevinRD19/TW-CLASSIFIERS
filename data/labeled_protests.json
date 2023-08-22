@@ -1,0 +1,12 @@
+[
+    {
+        "id": 12345,
+        "text": "Text of the tweet 1234"
+    },
+    {
+        "id": 67890,
+        "text": "Text of the tweet 67890",
+        "type": "Type of the tweet 67890",
+        "subtype": "Subtype of the tweet 67890"
+    }
+]

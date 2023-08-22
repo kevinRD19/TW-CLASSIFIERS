@@ -1,7 +1,6 @@
 import argparse
 import os
 import sys
-from itertools import chain
 
 
 c_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,13 +30,11 @@ if __name__ == '__main__':
     df_root_tweets, df_tweets = get_useful_roots(db, args.ignore, True)
 
     conversations = []
-    files = list(chain.from_iterable([
-        os.listdir(_dir) for _dir in CONFIG.get('tree_dirs', ['data/tree'])
-    ]))
-
-    for _file in files:
-        conversation_id = int(_file.split('.')[0])
-        conversations.append(conversation_id)
+    [
+        conversations.append(int(_file.split('.')[0]))
+        for _dir in CONFIG.get('tree_dirs', ['data/tree'])
+        for _file in os.listdir(_dir)
+    ]
 
     df_root_tweets = df_root_tweets.loc[
         ~df_root_tweets['conversation_id'].isin(conversations)
