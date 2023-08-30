@@ -50,6 +50,7 @@ In this part we have two different approaches to classify the tweets. The first 
     - :sweat: sadness
     - :joy: joy
     - disgust
+    
 For classify tweets individually, you can use the script **sentiment_classifier.py**, where you must introduce the conversation id and you can choose the classifier to use. You can run it with -h to see the parameters.
 
 ### Protest Type Classifier
