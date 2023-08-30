@@ -3,9 +3,9 @@
 ---
 
 This project is divided into three parts:
-    1. **Data Study**
-    2. **Classification**
-    3. **Others**
+1. **Data Study**
+2. **Classification**
+3. **Others**
 
 First of all, you need to install the required packages. You can do it by running the following command:
 
@@ -42,14 +42,14 @@ All of them that produce a figure have the option of show, save it or both. In c
 ### Tone (Sentiment + Emotional) Classifier
 
 In this part we have two different approaches to classify the tweets. The first one is an approach to sentiment and emotional analysis. For this, we have used the library [Transformes](https://huggingface.co/nlptown/bert-base-multilingual-uncased-sentiment), exactly an NLP for sentiments anlysis based in the BERT model. Additionaly, we have included the [NRC Lex](https://pypi.org/project/NRCLex/) library which is based in the [NRC Emotion Lexicon](https://saifmohammad.com/WebPages/NRC-Emotion-Lexicon.htm) to classify the tweets in the following emotions:
-    - :angry: anger
-    - :fearful: fear
-    - anticipation
-    - trust
-    - :open_mouth: surprise
-    - :sweat: sadness
-    - :joy: joy
-    - disgust
+- :angry: anger
+- :fearful: fear
+- anticipation
+- trust
+- :open_mouth: surprise
+- :sweat: sadness
+- :joy: joy
+- disgust
     
 For classify tweets individually, you can use the script **sentiment_classifier.py**, where you must introduce the conversation id and you can choose the classifier to use. You can run it with -h to see the parameters.
 
